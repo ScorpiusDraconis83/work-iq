@@ -89,6 +89,7 @@ plugins/<plugin-name>/
   - `meeting-cost-calculator` skill — Calculate time and cost spent in meetings
   - `org-chart` skill — Visual ASCII org chart for any person
   - `multi-plan-search` skill — Search tasks across all Planner plans
+  - `planner-status-report` skill — Generate a status report for one Planner plan
   - `site-explorer` skill — Browse SharePoint sites, lists, and libraries
   - `channel-audit` skill — Audit channels for inactivity and cleanup
   - `channel-digest` skill — Summarize activity across multiple channels
