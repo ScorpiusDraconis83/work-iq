@@ -229,9 +229,40 @@ Write the report directly in Markdown. Never expose internal JSON field names, c
 
 For this WorkIQ skill, follow the user's requested output surface:
 
-- If the user asks for charts, visuals, Gantt, timeline, or task completion chart, include the visual instructions below.
-- If the user asks for concise output or `contentToOmit` includes charts, visualizations, pie charts, Gantt charts, or timeline, skip chart blocks and use tables/counter lines.
-- If the target renderer may not support Mermaid or HTML, prefer the Markdown fallback tables.
+- If Mermaid support is confirmed, include the Task Completion Chart by default.
+- If Mermaid support is confirmed and the Project milestones section has enough
+  grounded date data for a meaningful timeline, include the Gantt Timeline by default.
+- A user request for charts, visuals, Gantt, timeline, or a task completion chart still
+  requests the applicable visual, but cannot override an explicit renderer limitation.
+- If the user explicitly asks for no charts, table-only output, or concise output, or
+  `contentToOmit` includes charts, visualizations, pie charts, Gantt charts, or timeline,
+  skip chart blocks and use tables/counter lines. This explicit opt-out takes precedence
+  over confirmed Mermaid support.
+- Select visual output using the renderer capability policy below. Do not infer Mermaid support merely because the report uses MCP.
+
+#### Renderer capability policy
+
+MCP initialization identifies the client and negotiates protocol features such as
+roots, sampling, and elicitation. Standard MCP capabilities do not advertise Markdown,
+HTML, Mermaid, or other response-renderer features. The WorkIQ tools also do not expose
+the MCP initialization handshake to this skill.
+
+Determine Mermaid support in this order:
+
+1. Use a trusted runtime-provided renderer capability when one is present.
+2. Use trusted host-configuration evidence when it explicitly states that Mermaid
+   diagrams or Mermaid fenced code blocks are supported or should be used. Host-level
+   formatting or rendering instructions count as this evidence; generic Markdown
+   support, client identity, and tool availability do not.
+3. Honor an explicit user instruction to produce Mermaid or an explicit statement that
+   their target renderer supports Mermaid. Once support is confirmed, visuals are
+   enabled by default unless the user opted out.
+4. Otherwise treat renderer support as unknown and use Markdown tables/counter lines.
+
+Do not infer renderer support from the presence of an MCP server, `clientInfo.name`
+alone, tool availability, or generic Markdown support. Do not ask a clarification
+question only to determine renderer support; use the fallback when the signal is
+missing. Never use inline HTML or SVG for charts.
 
 Use this structure unless the user's explicit section spec replaces it:
 
@@ -258,7 +289,8 @@ Use this structure unless the user's explicit section spec replaces it:
 
 **[TOTAL]** Total - Completed **[N]** - In Progress **[N]** - Delayed **[N]** - Not Started **[N]**
 
-[Optional Task Completion Chart; see chart rules below.]
+[Task Completion Chart when Mermaid support is confirmed and charts were not omitted;
+see chart rules below.]
 
 **Key risks**
 - **[Risk]:** [impact + owner when known].
@@ -314,7 +346,8 @@ Use this structure unless the user's explicit section spec replaces it:
 | [Group] | [Month YYYY or -] | [Month YYYY or -] | [status] | [done] / [total] |
 | **- Today -** | **[Month DD, YYYY]** | - | - | - |
 
-[Optional Gantt timeline; see chart rules below.]
+[Gantt timeline when Mermaid support is confirmed, charts were not omitted, and the
+grounded milestone data supports a meaningful timeline; see chart rules below.]
 
 ---
 
@@ -332,7 +365,8 @@ Use `overall_statistics` exactly:
 - In Progress = `overall_statistics.in_progress`
 - Not Started = `overall_statistics.not_started`
 
-If the renderer supports Mermaid but not the Sydney visual tag, emit:
+If Mermaid support is confirmed by the renderer capability policy and the user did not
+opt out of charts, emit this chart by default:
 
 ````markdown
 **Task Completion Chart:**
@@ -345,7 +379,7 @@ pie title Project Task Status
 ```
 ````
 
-If the renderer may not support either format, use the counter line only:
+If Mermaid support is unknown or unavailable, use the counter line only:
 
 ```markdown
 **[TOTAL]** Total - Completed **[N]** - In Progress **[N]** - Delayed **[N]** - Not Started **[N]**
@@ -378,8 +412,6 @@ gantt
 ```
 ````
 
-For the current GSR-safe path, do not emit Mermaid Gantt. Use the Project milestones Markdown table instead.
-
 Composition rules:
 
 - Lead with insight, then evidence.
@@ -391,7 +423,10 @@ Composition rules:
 - Completed before the period is historical context only; do not list it as a current-period win.
 - If an explicit section has no supporting data, include the heading and state the absence factually.
 - If a default section has no supporting data, omit it unless the structure requires it.
-- Do not use Mermaid, SVG, or inline HTML. Use Markdown tables, headings, bold text, and simple status indicators.
+- Use Mermaid only when permitted by the renderer capability policy and not explicitly
+  omitted by the user. When permitted, include applicable charts by default. Never use
+  SVG or inline HTML. Always keep the counter line or milestone table as a readable
+  fallback alongside any Mermaid chart.
 - Do not include task IDs unless the user explicitly asks for them.
 
 ### Step 9: Delivery behavior
