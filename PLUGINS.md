@@ -95,7 +95,7 @@ copilot plugin uninstall workiq-productivity
 
 | Server | Tools |
 |--------|-------|
-| `workiq` (hosted) | `ask_work_iq`, `fetch_work_iq`, `fetch_blob_work_iq`, `get_schema_work_iq`, `search_paths_work_iq`, `create_entity_work_iq`, `update_entity_work_iq`, `delete_entity_work_iq`, `do_action_work_iq`, `call_function_work_iq`, `upload_blob_work_iq`, `accept_eula`, `get_debug_link` |
+| `workiq` (hosted) | `ask_work_iq`, `fetch_work_iq`, `fetch_blob_work_iq`, `get_schema_work_iq`, `search_paths_work_iq`, `create_entity_work_iq`, `update_entity_work_iq`, `delete_entity_work_iq`, `do_action_work_iq`, `call_function_work_iq`, `accept_eula`, `get_debug_link` |
 
 ### Skills
 
@@ -118,7 +118,7 @@ copilot plugin uninstall workiq-productivity
 
 ## workiq-preview
 
-> **Preview build.** Same natural-language access as `workiq`, plus a broader set of entity tools for direct, structured M365 reads and writes — fetch, create, update, delete, do-action, call-function, schema discovery, and blob upload/download.
+> **Preview build.** Same natural-language access as `workiq`, plus a broader set of entity tools for direct, structured M365 reads and writes — fetch, create, update, delete, do-action, call-function, schema discovery, and blob downloads.
 
 **Install:** `/plugin install workiq-preview@work-iq`
 **Source:** [`plugins/workiq-preview/`](./plugins/workiq-preview/)
@@ -127,7 +127,7 @@ copilot plugin uninstall workiq-productivity
 
 | Server | Tools |
 |--------|-------|
-| `@microsoft/workiq@preview` | `ask_work_iq`, `fetch_work_iq`, `fetch_blob_work_iq`, `get_schema_work_iq`, `search_paths_work_iq`, `create_entity_work_iq`, `update_entity_work_iq`, `delete_entity_work_iq`, `do_action_work_iq`, `call_function_work_iq`, `upload_blob_work_iq`, `accept_eula`, `get_debug_link` |
+| `@microsoft/workiq@preview` | `ask_work_iq`, `fetch_work_iq`, `fetch_blob_work_iq`, `get_schema_work_iq`, `search_paths_work_iq`, `create_entity_work_iq`, `update_entity_work_iq`, `delete_entity_work_iq`, `do_action_work_iq`, `call_function_work_iq`, `accept_eula`, `get_debug_link` |
 
 ### Skills
 

@@ -1,6 +1,6 @@
 ---
 name: workiq-preview
-description: WorkIQ - Microsoft 365 tool surface for agents. Use for any workplace question or write action where data lives in M365. Supports semantic `ask` plus tools (`fetch`, create/update/delete, actions, functions, fetch_blob, path/schema discovery) for mail, meetings/calendar, documents/files, Teams chats/channels, OneDrive/SharePoint, and people. Read triggers, "what did [person] say", priorities/top of mind, meeting decisions/action items, summarize thread/chat, find emails/docs, list meetings/messages/files/channels, project status/updates, "what changed since", download file content. Write triggers, send/reply/forward email, create/update/accept/decline meetings, mark read, delete drafts/items, send/post/reply/react in Teams, set presence. Discovery triggers, available endpoints/paths, fields, required/updatable properties, request body, operation parameters, schema/data model. When in doubt about workplace context, try WorkIQ first. Prefer `ask` for synthesis; use entity tools for exact reads/writes.
+description: WorkIQ - Microsoft 365 tool surface for agents. Use for any workplace question or write action where data lives in M365. Supports semantic `ask` plus tools (`fetch`, create/update/delete, actions, functions, fetch_blob, path/schema discovery) for mail, meetings/calendar, documents/files, Teams chats/channels, OneDrive/SharePoint, and people. Read triggers, "what did [person] say", priorities/top of mind, meeting decisions/action items, summarize thread/chat, find emails/docs, list meetings/messages/files/channels, project status/updates, "what changed since", download file content. Write triggers, send/reply/forward email, create/update/accept/decline meetings, mark read, delete drafts/items, send/post/reply/react in Teams, set presence. Discovery triggers, available endpoints/paths, fields, request body, schema/data model. Prefer `ask` for synthesis; use entity tools for exact reads/writes.
 compatibility: >
   Uses the hosted WorkIQ MCP endpoint. No local package is required for MCP
   tool calls.
@@ -8,7 +8,7 @@ compatibility: >
 
 # WorkIQ
 
-WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`).
+WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`, `fetch_blob`).
 
 ## 🛑 STOP — Read This Before Your First Tool Call
 
@@ -243,6 +243,13 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 
 Use `fetch_blob` for file content in OneDrive/SharePoint, attachment payloads for messages, calendar events, and profile photos. It accepts a relative WorkIQ `path`, returns up to 4 MB as base64 with content metadata, and supports an optional `format` conversion value on compatible drive-content endpoints. Use `fetch` first only when you need to resolve an item or attachment ID. You should also help the user decode the base64 into a file with the correct extension and MIME type if needed.
 
+`fetch_blob` returns an in-band JSON envelope and does **not** fail the tool call on error: `{"statusCode":..., "sizeBytes":..., "base64Content":"...", "error":"...", "requestId":"..."}`. Always check `statusCode` before using `base64Content`. On a non-200 response:
+
+- **`"Access denied for the requested path."`** — tenant policy denies the blob path family. Do not retry path variants. `fetch` the item's metadata and return its `webUrl`; for an attachment, return the parent message's `webLink`.
+- **Payload over the 4 MB cap** — use the same fallback and return the item's `webUrl`.
+
+Never fabricate `base64Content`, `@odata.mediaContentType`, or `@microsoft.graph.downloadUrl`.
+
 `upload_blob` is documented for future reference but **is not part of the current WorkIQ MCP surface**. Attempting to call it returns `tool does not exist`. Do not call it, search for an alternate upload tool, or invent a similar name such as `put_file`.
 
 When the user asks to upload a local file:
@@ -373,6 +380,7 @@ Action verbs (camelCase verb at end of path: `/me/sendMail`, `/me/messages/{id}/
 | `search_paths` | Discover available API paths | `filter` (regex, **required**) |
 | `get_schema` | Inspect fields and body shape for a path | `path`, `operationType` (`fetch`/`create`/`update`/`action`), `format` |
 | `fetch` | Fetch entities by path (GET) | `entityUrls[]` — supports OData (`$filter`, `$select`, `$top`) |
+| `fetch_blob` | Download binary content (file bytes, attachment payloads) | `path`, `format` (optional) |
 | `call_function` | Call named OData functions — GET-shaped, side-effect-free, parenthesised inline params (e.g. `delta`, `reminderView`) | `functionUrl` with inline function params |
 | `create_entity` | Create a new entity (POST to collection) | `parentUrl`, `jsonBody` |
 | `update_entity` | Update fields on an existing entity (PATCH) | `entityUrl` with ID, `jsonBody` |
@@ -384,6 +392,7 @@ Read the relevant reference file for full parameter details and examples:
 - `references/search-paths-work-iq.md` — if you need to discover what paths are available
 - `references/get-schema-work-iq.md` — if you need to understand an entity's fields before reading or writing
 - `references/fetch-work-iq.md` — if you need to fetch structured or filtered M365 data
+- `references/fetch-blob-work-iq.md` — if you need to download file bytes, attachment payloads, or other binary content
 - `references/call-function-work-iq.md` — if the path uses OData function call syntax (e.g., `reminderView(...)`, `delta`)
 - `references/create-entity-work-iq.md` — if you need to create a new calendar event, email draft, task, etc.
 - `references/mail-work-iq.md` — if you need to find, draft, send, reply, forward, move, or delete mail (covers `$search` vs `$filter` and the mail-delta endpoint)

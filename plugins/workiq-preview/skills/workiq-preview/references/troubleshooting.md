@@ -52,6 +52,14 @@ See the **URL Format Rules** section of `SKILL.md` for full examples.
 
 **Fix:** Re-resolve the exact tool name by scanning for a tool whose name ends with `fetch_blob`, preferring the `workiq-preview` server prefix. If it is still absent, refresh or reconnect the WorkIQ MCP server and retry once. Do not invent variants such as `download_file` or `get_blob`.
 
+## `fetch_blob` returns "Access denied for the requested path."
+
+**Symptom:** The call returns `{"statusCode":400,"sizeBytes":0,"base64Content":"","error":"Access denied for the requested path."}`.
+
+**Cause:** Tenant policy denies the blob path family — the same policy layer described under "Server may deny families by policy" in `SKILL.md`. This is not an authentication or catalog problem; reconnecting the MCP server will not change it.
+
+**Fix:** Do not retry path variants. `fetch` the item's metadata (`/me/drive/items/{id}`) and return its `webUrl`; for an attachment, return the parent message's `webLink`.
+
 ## `upload_blob` returns "tool does not exist"
 
 **Symptom:** A call to `upload_blob` or a variant such as `put_file` returns "tool does not exist".

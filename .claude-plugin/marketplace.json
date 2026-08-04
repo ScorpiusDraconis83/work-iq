@@ -7,13 +7,13 @@
   "plugins": [
     {
       "name": "workiq",
-      "description": "Full WorkIQ tool surface \u2014 agentic queries via ask plus direct reads and writes (create, update, delete, send, upload) across emails, meetings, calendar, documents, Teams, OneDrive, and SharePoint.",
+      "description": "Full WorkIQ tool surface \u2014 agentic queries via ask plus direct reads and writes (create, update, delete, send) across emails, meetings, calendar, Planner tasks, documents, Teams, people and contacts, OneDrive, and SharePoint.",
       "version": "2.0.1",
       "source": "./plugins/workiq"
     },
     {
       "name": "workiq-preview",
-      "description": "Preview build: full WorkIQ tool surface \u2014 agentic queries via ask plus direct reads and writes (create, update, delete, send, upload) across emails, meetings, calendar, documents, Teams, OneDrive, and SharePoint.",
+      "description": "Preview build: full WorkIQ tool surface \u2014 agentic queries via ask plus direct reads and writes (create, update, delete, send) across emails, meetings, calendar, Planner tasks, documents, Teams, people and contacts, OneDrive, and SharePoint.",
       "version": "0.5.1",
       "source": "./plugins/workiq-preview"
     },
