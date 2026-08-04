@@ -14,7 +14,6 @@ Download binary content from a WorkIQ path. The tool returns up to 4 MB of file 
 
 - Downloading a file from OneDrive or SharePoint
 - Retrieving an email attachment
-- Retrieving a profile photo
 - Downloading exported content
 
 Distinguish from `fetch`: use `fetch_blob` when the path returns binary content (files, raw attachment bytes). Use `fetch` when the path returns JSON.
@@ -26,7 +25,6 @@ Distinguish from `fetch`: use `fetch_blob` when the path returns binary content 
 | OneDrive file content | `/me/drive/items/{id}/content` |
 | SharePoint file content | `/drives/{driveId}/items/{id}/content` |
 | Email attachment (raw) | `/me/messages/{id}/attachments/{attachmentId}/$value` |
-| Profile photo | `/me/photo/$value` |
 
 ## Workflow
 
