@@ -1,19 +1,20 @@
 # fetch_blob
 
-> ⚠️ **Not released yet.** `fetch_blob` is documented here for future reference but is **not part of the current WorkIQ MCP surface**. Calling it today returns `tool does not exist`. When a user asks to download a file or fetch attachment bytes, return the entity's `webUrl` (or the parent message URL for an attachment) and tell the user WorkIQ can't stream raw bytes yet — see the [Binary file content](../SKILL.md) section in `SKILL.md` for the canonical workflow.
-
-Download binary content from a WorkIQ path. Use this for file content, email attachments, document downloads, and any other binary resource from Microsoft 365.
+Download binary content from a WorkIQ path. The tool returns up to 4 MB of file bytes as base64 plus content type, file name, and size metadata. Use this for file content, email attachments, document downloads, profile photos, and other binary Microsoft 365 resources.
 
 ## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `blobUrl` | string | Yes | The path to the binary resource (e.g., `/me/drive/items/{id}/content`, `/me/messages/{id}/attachments/{attachmentId}/$value`). Must be a relative path — do not include a base URL. |
+| `path` | string | Yes | The relative WorkIQ path to the binary resource (e.g., `/me/drive/items/{id}/content`, `/me/messages/{id}/attachments/{attachmentId}/$value`). Do not include a base URL. |
+| `format` | string | No | A `$format` conversion value such as `pdf`; honored only on compatible drive-content endpoints. |
+| `agentId` | string | No | Target a specific M365 Copilot agent. |
 
 ## When to Use
 
 - Downloading a file from OneDrive or SharePoint
 - Retrieving an email attachment
+- Retrieving a profile photo
 - Downloading exported content
 
 Distinguish from `fetch`: use `fetch_blob` when the path returns binary content (files, raw attachment bytes). Use `fetch` when the path returns JSON.
@@ -25,25 +26,37 @@ Distinguish from `fetch`: use `fetch_blob` when the path returns binary content 
 | OneDrive file content | `/me/drive/items/{id}/content` |
 | SharePoint file content | `/drives/{driveId}/items/{id}/content` |
 | Email attachment (raw) | `/me/messages/{id}/attachments/{attachmentId}/$value` |
+| Profile photo | `/me/photo/$value` |
 
 ## Workflow
 
 1. Use `fetch` to list items and retrieve their IDs (e.g., `/me/drive/root/children`)
-2. Use `fetch_blob` with the content path to download the binary data
+2. Use `fetch_blob` with the content path to download the binary data.
+3. Decode `base64Content` only when the host needs to materialize the returned bytes locally.
+
+If the response reports that the payload is too large, do not retry path variants. The tool limits downloads to 4 MB; return the item's `webUrl` so the user can download it directly.
 
 ## Examples
 
 ### Download a file from OneDrive by item ID
 ```json
-{ "blobUrl": "/me/drive/items/{id}/content" }
+{ "path": "/me/drive/items/{id}/content" }
 ```
 
 ### Download an email attachment
 ```json
-{ "blobUrl": "/me/messages/{messageId}/attachments/{attachmentId}/$value" }
+{ "path": "/me/messages/{messageId}/attachments/{attachmentId}/$value" }
 ```
 
 ### Download a file from a shared drive
 ```json
-{ "blobUrl": "/drives/{driveId}/items/{itemId}/content" }
+{ "path": "/drives/{driveId}/items/{itemId}/content" }
+```
+
+### Download a drive item converted to PDF
+```json
+{
+	"path": "/me/drive/items/{id}/content",
+	"format": "pdf"
+}
 ```
