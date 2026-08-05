@@ -1,6 +1,6 @@
 ---
 name: workiq
-description: WorkIQ - Microsoft 365 tool surface for agents. Use for any workplace question or write action where data lives in M365. Supports semantic `ask` plus structured tools (`fetch`, create/update/delete, actions, functions, path/schema discovery) for mail, meetings/calendar, documents/files, Teams chats/channels, OneDrive/SharePoint, and people. Read triggers, "what did [person] say", priorities/top of mind, meeting decisions/action items, summarize thread/chat, find emails/docs, list meetings/messages/files/channels, project status/updates, "what changed since". Write triggers, send/reply/forward email, create/update/accept/decline meetings, mark read, delete drafts/items, send/post/reply/react in Teams, set presence, upload/download via web URL. Discovery triggers, available endpoints/paths, fields, required/updatable properties, request body, operation parameters, schema/data model. When in doubt about workplace context, try WorkIQ first. Prefer `ask` for synthesis; use entity tools for exact reads/writes.
+description: WorkIQ - Microsoft 365 tool surface for agents. Use for any workplace question or write action where data lives in M365. Supports semantic `ask` plus tools (`fetch`, create/update/delete, actions, functions, fetch_blob, path/schema discovery) for mail, meetings/calendar, documents/files, Teams chats/channels, OneDrive/SharePoint, and people. Read triggers, "what did [person] say", priorities/top of mind, meeting decisions/action items, summarize thread/chat, find emails/docs, list meetings/messages/files/channels, project status/updates, "what changed since", download file content. Write triggers, send/reply/forward email, create/update/accept/decline meetings, mark read, delete drafts/items, send/post/reply/react in Teams, set presence. Discovery triggers, available endpoints/paths, fields, request body, schema/data model. Prefer `ask` for synthesis; use entity tools for exact reads/writes.
 compatibility: >
   Uses the hosted WorkIQ MCP endpoint. No local package is required for MCP
   tool calls.
@@ -8,7 +8,7 @@ compatibility: >
 
 # WorkIQ
 
-WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`).
+WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`, `fetch_blob`).
 
 ## 🛑 STOP — Read This Before Your First Tool Call
 
@@ -229,7 +229,7 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 | Teams | `/me/chats`, `/chats/{chatId}/messages`, `/me/joinedTeams`, `/teams/{teamId}/channels/{channelId}/messages`, `/me/presence` | chats vs channels are different surfaces — see `references/teams-work-iq.md` |
 | People | `/me`, `/users/{id}`, `/users/{id}/directReports`, `/me/manager`, `/me/contacts` | profile, org, contacts — see directory-vs-contacts warning below |
 | Outlook categories | `/me/outlook/masterCategories` | list/get/create/update/delete — writes commonly policy-denied |
-| Files | `/me/drive`, `/drives/{id}`, `/sites/{id}` | list/get JSON metadata only — binary content (file bytes, attachment payloads) is not released yet, see the deny rule below |
+| Files | `/me/drive`, `/drives/{id}`, `/sites/{id}` | list/get JSON metadata with `fetch`; download binary content with `fetch_blob` - see `references/fetch-blob-work-iq.md`; uploads are not released yet |
 | Change tracking | `/me/mailFolders/inbox/messages/delta`, `/me/calendarView/delta?...`, `/me/contacts/delta` | "what's new/changed since" — via `call_function` only, never `fetch` |
 
 > **Server may deny families by policy.** Tenants can disable specific path families
@@ -239,19 +239,27 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 > `/me/todo/*`, `/me/contacts`, and writes on `/me/outlook/masterCategories` are commonly
 > affected — `search_paths` confirms what's exposed for the connected tenant.
 
-### 🛑 Binary file content is not yet released — `fetch_blob` and `upload_blob` are not callable today
+### Binary downloads use `fetch_blob`; `upload_blob` is not released
 
-`fetch_blob` and `upload_blob` are documented for future reference, but **they are not part of the current WorkIQ MCP surface**. Attempting to call them returns `tool does not exist`. Do not call them, do not search for them in your tool list, do not invent them from a similar name (e.g. `download_file`, `get_blob`, `put_file`).
+Use `fetch_blob` for file content in OneDrive/SharePoint, attachment payloads for messages, calendar events, and profile photos. It accepts a relative WorkIQ `path`, returns up to 4 MB as base64 with content metadata, and supports an optional `format` conversion value on compatible drive-content endpoints. Use `fetch` first only when you need to resolve an item or attachment ID. You should also help the user decode the base64 into a file with the correct extension and MIME type if needed.
 
-**You cannot retrieve or send raw bytes through the current WorkIQ MCP surface yet** — no file payload, no attachment payload, no profile photo bytes, no base64 blob, no inline binary content.
+`fetch_blob` returns errors in-band: `{"statusCode":..., "sizeBytes":..., "base64Content":"...", "error":"...", "requestId":"..."}`. Always check `statusCode` before using `base64Content`. On a non-200:
 
-When the user asks to download a file, upload a local file, get attachment content, or fetch a profile photo:
+- **Access denied:** Do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
+- **Over 4 MB:** Return the file's `webUrl`.
+- **Other errors:** Report `error` and `requestId`.
 
-1. **Confirm the request and tell the user WorkIQ does not support binary file content yet.**
-2. **Return the file's web URL** instead — `fetch` `/me/drive/items/{id}` (or the SharePoint equivalent) returns a `webUrl` the user can open in OneDrive / SharePoint / Outlook directly. For an attachment, return the parent message URL so the user can open it in Outlook.
-3. **Never fabricate binary content.** Do not invent a base64 string, an `@odata.mediaContentType`, or an `@microsoft.graph.downloadUrl` to satisfy the request. If the user needs the bytes, point them at the web URL — they will download from there.
+Never fabricate binary content or download URLs.
 
-If the user explicitly asks "why can't you download it directly?" — say the binary-download and upload tools (`fetch_blob`, `upload_blob`) are not yet released in WorkIQ; the structured-metadata tools (`fetch`, `create_entity`, etc.) are the full available surface today.
+`upload_blob` is documented for future reference but **is not part of the current WorkIQ MCP surface**. Attempting to call it returns `tool does not exist`. Do not call it, search for an alternate upload tool, or invent a similar name such as `put_file`.
+
+When the user asks to upload a local file:
+
+1. Tell the user WorkIQ cannot upload raw byte payloads yet.
+2. Use `fetch` to resolve and return the destination folder's `webUrl` when useful, so the user can upload through OneDrive or SharePoint.
+3. Do not claim the upload succeeded without a confirmed write response.
+
+For detailed download paths and examples, read `references/fetch-blob-work-iq.md`. For the unreleased upload contract, see `references/upload-blob-work-iq.md`.
 
 ### ⚠️ Directory users and personal contacts are different stores
 
@@ -373,6 +381,7 @@ Action verbs (camelCase verb at end of path: `/me/sendMail`, `/me/messages/{id}/
 | `search_paths` | Discover available API paths | `filter` (regex, **required**) |
 | `get_schema` | Inspect fields and body shape for a path | `path`, `operationType` (`fetch`/`create`/`update`/`action`), `format` |
 | `fetch` | Fetch entities by path (GET) | `entityUrls[]` — supports OData (`$filter`, `$select`, `$top`) |
+| `fetch_blob` | Download binary content (file bytes, attachment payloads) | `path`, `format` (optional) |
 | `call_function` | Call named OData functions — GET-shaped, side-effect-free, parenthesised inline params (e.g. `delta`, `reminderView`) | `functionUrl` with inline function params |
 | `create_entity` | Create a new entity (POST to collection) | `parentUrl`, `jsonBody` |
 | `update_entity` | Update fields on an existing entity (PATCH) | `entityUrl` with ID, `jsonBody` |
@@ -384,6 +393,7 @@ Read the relevant reference file for full parameter details and examples:
 - `references/search-paths-work-iq.md` — if you need to discover what paths are available
 - `references/get-schema-work-iq.md` — if you need to understand an entity's fields before reading or writing
 - `references/fetch-work-iq.md` — if you need to fetch structured or filtered M365 data
+- `references/fetch-blob-work-iq.md` — if you need to download file bytes, attachment payloads, or other binary content
 - `references/call-function-work-iq.md` — if the path uses OData function call syntax (e.g., `reminderView(...)`, `delta`)
 - `references/create-entity-work-iq.md` — if you need to create a new calendar event, email draft, task, etc.
 - `references/mail-work-iq.md` — if you need to find, draft, send, reply, forward, move, or delete mail (covers `$search` vs `$filter` and the mail-delta endpoint)

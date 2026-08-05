@@ -60,7 +60,7 @@ The plugin exposes the WorkIQ MCP tool surface — read **and** write — from `
 "Who are Rob's direct reports?"
 ```
 
-### Writes (`create_entity`, `update_entity`, `delete_entity`, `do_action`, `upload_blob`)
+### Writes (`create_entity`, `update_entity`, `delete_entity`, `do_action`)
 
 > ⚠️ Writes execute immediately and are visible to other people or unrecoverable. The skill is instructed to confirm with you before sending mail, forwarding, accepting/declining meetings, or permanently deleting.
 
@@ -74,7 +74,9 @@ The plugin exposes the WorkIQ MCP tool surface — read **and** write — from `
 "Move the design review thread to the Archive folder"
 ```
 
-> ⚠️ `fetch_blob` and `upload_blob` are documented for future reference but are not released in the current WorkIQ MCP surface. For downloads, fetch metadata and return `webUrl`; for uploads, direct the user to OneDrive / SharePoint until raw byte support is released.
+`fetch_blob` downloads binary content up to 4 MB and returns it base64-encoded with metadata.
+
+> ⚠️ `upload_blob` is documented for future reference but is not released in the current WorkIQ MCP surface. For uploads, direct the user to OneDrive / SharePoint until raw byte upload support is released.
 
 ## Skills
 

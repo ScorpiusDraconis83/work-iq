@@ -87,19 +87,22 @@ Common URL encodings for OData query values:
 | `$orderby` | Sort results | `$orderby=receivedDateTime%20desc` |
 | `$expand` | Include related entities inline | `$expand=attachments` |
 
-## Binary file content is not available
+## Binary file content uses `fetch_blob`
 
-This skill **cannot** download file bytes, attachment payloads, profile photo bytes, or any other binary content. There is no `fetch_blob` tool exposed.
+`fetch` returns JSON metadata and cannot return raw file bytes, attachment payloads, or profile photo bytes. Use `fetch_blob` for binary content.
 
 Do **not** call `fetch` against paths ending in `/content` or `$value` (e.g. `/me/drive/items/{id}/content`, `/me/messages/{id}/attachments/{id}/$value`) — `fetch` only returns JSON metadata envelopes, and it will not give you the raw bytes either.
 
 When the user asks for a file's content:
 
-1. Tell the user this skill cannot return the binary content directly.
-2. `fetch` the item's metadata (e.g. `/me/drive/items/{id}`) and return the `webUrl` so the user can open and download it in OneDrive / SharePoint / Outlook directly.
-3. For an attachment, return the parent message's `webLink` so the user can open it in Outlook.
+1. Use `fetch` to resolve the item's ID when it is not already known.
+2. Call `fetch_blob` with the `/content` or `/$value` path.
+3. Check the in-band `statusCode` before using `base64Content`.
+4. On access denied, do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
+5. If the payload exceeds the 4 MB download limit, use the same `webUrl` fallback.
+6. For other errors, report `error` and `requestId`.
 
-Never fabricate base64 content, `@odata.mediaContentType`, or an `@microsoft.graph.downloadUrl` value to satisfy the request.
+Never fabricate binary content or download URLs.
 
 ## Examples
 

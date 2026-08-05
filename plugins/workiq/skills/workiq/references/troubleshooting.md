@@ -44,19 +44,21 @@ See the **URL Format Rules** section of `SKILL.md` for full examples.
 
 **Fix:** Drop the extra argument and retry with `filter` only. If the user explicitly asked for SharePoint REST, Dataverse, or any other API surface, report honestly that WorkIQ surfaces Graph paths through `search_paths` and the other surface is not available here. Do not invent a tool variant or alternate backend.
 
-## `fetch_blob` or `upload_blob` returns "tool does not exist"
+## `fetch_blob` returns "Access denied for the requested path."
 
-**Symptom:** A call to `fetch_blob`, `upload_blob`, or any variant (e.g. `download_file`, `get_blob`, `put_file`) returns "tool does not exist" — or you cannot find such a tool in your available-tools list.
+**Symptom:** The call returns a non-200 envelope whose `error` string or nested `error.error.code` / `error.error.message` reports access denied. The `error` field is optional on failures; if it is absent, use `statusCode` and `requestId` rather than assuming the cause.
 
-**Cause:** Binary-content tools are documented for future reference but are **not released in the current WorkIQ MCP surface**. The available tools are `ask`, `list_agents`, `search_paths`, `get_schema`, `fetch`, `call_function`, `create_entity`, `update_entity`, `delete_entity`, and `do_action`. See the deny rule in `SKILL.md`.
+**Cause:** Tenant policy denies the blob path family — the same policy layer described under "Server may deny families by policy" in `SKILL.md`. This is not an authentication or catalog problem; reconnecting the MCP server will not change it.
 
-**Fix:** Do not retry, do not search for an alternate binary tool, do not invent one.
+**Fix:** Do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
 
-- For downloads: `fetch` the item's metadata (`/me/drive/items/{id}`) and return the `webUrl` so the user can open and download in OneDrive / SharePoint / Outlook directly.
-- For uploads: tell the user WorkIQ cannot send file bytes yet; offer them the destination URL so they can upload via the OneDrive / SharePoint UI.
-- For attachments: return the parent message URL so the user can open and download in Outlook.
+## `upload_blob` returns "tool does not exist"
 
-Never fabricate base64 content or `@microsoft.graph.downloadUrl` values to satisfy the request.
+**Symptom:** A call to `upload_blob` or a variant such as `put_file` returns "tool does not exist".
+
+**Cause:** `upload_blob` is documented for future reference but is **not released in the current WorkIQ MCP surface**.
+
+**Fix:** Do not retry or search for an alternate upload tool. Tell the user WorkIQ cannot send file bytes yet; use `fetch` to return the destination folder's `webUrl` when useful so they can upload through OneDrive or SharePoint.
 
 ## `ask` is slow or appears to hang
 
