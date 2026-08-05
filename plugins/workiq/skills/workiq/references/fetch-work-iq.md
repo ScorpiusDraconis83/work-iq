@@ -98,10 +98,11 @@ When the user asks for a file's content:
 1. Use `fetch` to resolve the item's ID when it is not already known.
 2. Call `fetch_blob` with the `/content` or `/$value` path.
 3. Check the in-band `statusCode` before using `base64Content`.
-4. On `"Access denied for the requested path."`, do not retry path variants. `fetch` the item's metadata and return its `webUrl`; for an attachment, return the parent message's `webLink`.
+4. On access denied, do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
 5. If the payload exceeds the 4 MB download limit, use the same `webUrl` fallback.
+6. For other errors, report `error` and `requestId`.
 
-Never fabricate base64 content, `@odata.mediaContentType`, or an `@microsoft.graph.downloadUrl` value to satisfy the request.
+Never fabricate binary content or download URLs.
 
 ## Examples
 

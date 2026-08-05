@@ -34,9 +34,9 @@ Distinguish from `fetch`: use `fetch_blob` when the path returns binary content 
 3. Check `statusCode` before reading or decoding `base64Content`.
 4. Decode `base64Content` only when the host needs to materialize the returned bytes locally.
 
-On a non-200 response, do not retry path variants. If `error` is `"Access denied for the requested path."`, tenant policy denies the blob path family; `fetch` the item's metadata and return its `webUrl`, or return the parent message's `webLink` for an attachment. If the payload exceeds the 4 MB limit, use the same `webUrl` fallback.
+On a non-200 response, do not retry path variants. For access denied, return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial. For payloads over 4 MB, return the file's `webUrl`. For other errors, report `error` and `requestId`.
 
-Never fabricate `base64Content`, `@odata.mediaContentType`, or `@microsoft.graph.downloadUrl`.
+Never fabricate binary content or download URLs.
 
 ## Examples
 

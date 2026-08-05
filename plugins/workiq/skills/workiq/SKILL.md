@@ -243,12 +243,13 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 
 Use `fetch_blob` for file content in OneDrive/SharePoint, attachment payloads for messages, calendar events, and profile photos. It accepts a relative WorkIQ `path`, returns up to 4 MB as base64 with content metadata, and supports an optional `format` conversion value on compatible drive-content endpoints. Use `fetch` first only when you need to resolve an item or attachment ID. You should also help the user decode the base64 into a file with the correct extension and MIME type if needed.
 
-`fetch_blob` returns an in-band JSON envelope and does **not** fail the tool call on error: `{"statusCode":..., "sizeBytes":..., "base64Content":"...", "error":"...", "requestId":"..."}`. Always check `statusCode` before using `base64Content`. On a non-200 response:
+`fetch_blob` returns errors in-band: `{"statusCode":..., "sizeBytes":..., "base64Content":"...", "error":"...", "requestId":"..."}`. Always check `statusCode` before using `base64Content`. On a non-200:
 
-- **`"Access denied for the requested path."`** — tenant policy denies the blob path family. Do not retry path variants. `fetch` the item's metadata and return its `webUrl`; for an attachment, return the parent message's `webLink`.
-- **Payload over the 4 MB cap** — use the same fallback and return the item's `webUrl`.
+- **Access denied:** Do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
+- **Over 4 MB:** Return the file's `webUrl`.
+- **Other errors:** Report `error` and `requestId`.
 
-Never fabricate `base64Content`, `@odata.mediaContentType`, or `@microsoft.graph.downloadUrl`.
+Never fabricate binary content or download URLs.
 
 `upload_blob` is documented for future reference but **is not part of the current WorkIQ MCP surface**. Attempting to call it returns `tool does not exist`. Do not call it, search for an alternate upload tool, or invent a similar name such as `put_file`.
 
