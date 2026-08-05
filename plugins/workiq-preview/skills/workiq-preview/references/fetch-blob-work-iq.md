@@ -1,6 +1,6 @@
 # fetch_blob
 
-Download binary content from a WorkIQ path. The tool returns up to 4 MB of file bytes in an in-band JSON envelope with `statusCode`, `sizeBytes`, `base64Content`, `error`, and `requestId`. Use this for file content, email attachments, document downloads, profile photos, and other binary Microsoft 365 resources.
+Download binary content from a WorkIQ path. The tool returns up to 4 MB of file bytes in an in-band JSON envelope with `statusCode`, `sizeBytes`, `base64Content`, and `requestId`. An `error` field may also be present on failures. Use this for file content, email attachments, document downloads, profile photos, and other binary Microsoft 365 resources.
 
 ## Parameters
 
@@ -34,7 +34,7 @@ Distinguish from `fetch`: use `fetch_blob` when the path returns binary content 
 3. Check `statusCode` before reading or decoding `base64Content`.
 4. Decode `base64Content` only when the host needs to materialize the returned bytes locally.
 
-On a non-200 response, do not retry path variants. For access denied, return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial. For payloads over 4 MB, return the file's `webUrl`. For other errors, report `error` and `requestId`.
+On a non-200 response, do not retry path variants. The optional `error` value may be a string or a nested object such as `{"error":{"code":"itemNotFound","message":"The resource could not be found."}}`. When present, report its useful code and message along with `requestId`; when absent, report `statusCode` and `requestId` instead. Never report an undefined or missing `error` value. For access denied, return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial. For payloads over 4 MB, return the file's `webUrl`.
 
 Never fabricate binary content or download URLs.
 

@@ -46,7 +46,7 @@ See the **URL Format Rules** section of `SKILL.md` for full examples.
 
 ## `fetch_blob` returns "Access denied for the requested path."
 
-**Symptom:** The call returns `{"statusCode":400,"sizeBytes":0,"base64Content":"","error":"Access denied for the requested path."}`.
+**Symptom:** The call returns a non-200 envelope whose `error` string or nested `error.error.code` / `error.error.message` reports access denied. The `error` field is optional on failures; if it is absent, use `statusCode` and `requestId` rather than assuming the cause.
 
 **Cause:** Tenant policy denies the blob path family — the same policy layer described under "Server may deny families by policy" in `SKILL.md`. This is not an authentication or catalog problem; reconnecting the MCP server will not change it.
 
