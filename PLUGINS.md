@@ -80,7 +80,7 @@ copilot plugin uninstall workiq-productivity
 | 1 | [**workiq**](#workiq) | 1 | Full WorkIQ tool surface — agentic queries plus direct M365 reads and writes |
 | 2 | [**workiq-preview**](#workiq-preview) | 1 | Preview build with the full entity tool surface (read + write) |
 | 3 | [**microsoft-365-agents-toolkit**](#microsoft-365-agents-toolkit) | 4 | Toolkit for building M365 Copilot declarative agents |
-| 4 | [**workiq-productivity**](#workiq-productivity) | 9 | Read-only productivity insights across M365 |
+| 4 | [**workiq-productivity**](#workiq-productivity) | 10 | Read-only productivity insights across M365 |
 
 ---
 
@@ -179,7 +179,7 @@ copilot plugin uninstall workiq-productivity
 
 ## workiq-productivity
 
-> **9 read-only skills** — email, meetings, Teams, SharePoint, projects, and people.
+> **10 read-only skills** — email, meetings, Teams, SharePoint, projects, and people.
 
 **Install:** `/plugin install workiq-productivity@work-iq`
 **Source:** [`plugins/workiq-productivity/`](./plugins/workiq-productivity/)
@@ -194,6 +194,7 @@ copilot plugin uninstall workiq-productivity
 | [**meeting-cost-calculator**](./plugins/workiq-productivity/skills/meeting-cost-calculator/SKILL.md) | Calculate time and cost spent in meetings |
 | [**org-chart**](./plugins/workiq-productivity/skills/org-chart/SKILL.md) | Visual ASCII org chart for any person |
 | [**multi-plan-search**](./plugins/workiq-productivity/skills/multi-plan-search/SKILL.md) | Search tasks across all Planner plans |
+| [**planner-status-report**](./plugins/workiq-productivity/skills/planner-status-report/SKILL.md) | Generate a status report for one Planner plan |
 | [**site-explorer**](./plugins/workiq-productivity/skills/site-explorer/SKILL.md) | Browse SharePoint sites, lists, and libraries |
 | [**channel-audit**](./plugins/workiq-productivity/skills/channel-audit/SKILL.md) | Audit channels for inactivity and cleanup |
 | [**channel-digest**](./plugins/workiq-productivity/skills/channel-digest/SKILL.md) | Summarize activity across multiple channels |
@@ -207,6 +208,7 @@ copilot plugin uninstall workiq-productivity
 "How much time did I spend in meetings this week?"
 "Show the org chart for Sarah Johnson"
 "Search all my Planner tasks for 'budget review'"
+"Generate a status report for the Contoso launch plan"
 "Browse the Marketing SharePoint site"
 "Audit inactive channels in the Engineering team"
 "Summarize activity across my Teams channels"

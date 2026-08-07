@@ -1,6 +1,6 @@
 # WorkIQ Productivity
 
-> **9 read-only skills** — email, meetings, Teams, SharePoint, projects, and people.
+> **10 read-only skills** — email, meetings, Teams, SharePoint, projects, and people.
 
 ## What It Does
 
@@ -12,6 +12,7 @@ WorkIQ Productivity provides read-only productivity insights across your Microso
 - **meeting-cost-calculator** — Calculate time and cost spent in meetings
 - **org-chart** — Visual ASCII org chart for any person
 - **multi-plan-search** — Search tasks across all Planner plans
+- **planner-status-report** — Generate a status report for one Planner plan
 - **site-explorer** — Browse SharePoint sites, lists, and libraries
 - **channel-audit** — Audit channels for inactivity and cleanup
 - **channel-digest** — Summarize activity across multiple channels
@@ -26,6 +27,7 @@ WorkIQ Productivity provides read-only productivity insights across your Microso
 | [**meeting-cost-calculator**](./skills/meeting-cost-calculator/SKILL.md) | Calculate time and cost spent in meetings |
 | [**org-chart**](./skills/org-chart/SKILL.md) | Visual ASCII org chart for any person |
 | [**multi-plan-search**](./skills/multi-plan-search/SKILL.md) | Search tasks across all Planner plans |
+| [**planner-status-report**](./skills/planner-status-report/SKILL.md) | Generate a status report for one Planner plan |
 | [**site-explorer**](./skills/site-explorer/SKILL.md) | Browse SharePoint sites, lists, and libraries |
 | [**channel-audit**](./skills/channel-audit/SKILL.md) | Audit channels for inactivity and cleanup |
 | [**channel-digest**](./skills/channel-digest/SKILL.md) | Summarize activity across multiple channels |
