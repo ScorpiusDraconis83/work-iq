@@ -1,6 +1,6 @@
 # fetch_blob
 
-Download binary content from a WorkIQ path. The tool returns up to 4 MB of file bytes in an in-band JSON envelope with `statusCode`, `sizeBytes`, `base64Content`, and `requestId`. An `error` field may also be present on failures. Use this for file content, email attachments, document downloads, profile photos, and other binary Microsoft 365 resources.
+Download binary content from a WorkIQ path. The tool returns up to 4 MB of file bytes as base64 plus content type, file name, and size metadata. Use this for file content, email attachments, document downloads, profile photos, and other binary Microsoft 365 resources.
 
 ## Parameters
 
@@ -25,18 +25,16 @@ Distinguish from `fetch`: use `fetch_blob` when the path returns binary content 
 | OneDrive file content | `/me/drive/items/{id}/content` |
 | SharePoint file content | `/drives/{driveId}/items/{id}/content` |
 | Email attachment (raw) | `/me/messages/{id}/attachments/{attachmentId}/$value` |
-| Profile photo | `/me/photo/$value`, `/users/{id}/photo/$value` |
 
 ## Workflow
 
 1. Use `fetch` to list items and retrieve their IDs (e.g., `/me/drive/root/children`)
 2. Use `fetch_blob` with the content path to download the binary data.
-3. Check `statusCode` before reading or decoding `base64Content`.
-4. Decode `base64Content` only when the host needs to materialize the returned bytes locally.
+3. Decode `base64Content` only when the host needs to materialize the returned bytes locally.
 
-On a non-200 response, do not retry path variants. The optional `error` value may be a string or a nested object such as `{"error":{"code":"itemNotFound","message":"The resource could not be found."}}`. When present, report its useful code and message along with `requestId`; when absent, report `statusCode` and `requestId` instead. Never report an undefined or missing `error` value. For access denied, return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial. For payloads over 4 MB, return the file's `webUrl`.
+For SharePoint file content, use the drive-scoped path `/drives/{driveId}/items/{itemId}/content`. Do not use `/me/drive` for SharePoint requests. Select a real file document; avoid home pages, SitePages entries, or other `.aspx` site pages unless the user explicitly asks for a SharePoint page.
 
-Never fabricate binary content or download URLs.
+If the response reports that the payload is too large, do not retry path variants. The tool limits downloads to 4 MB; return the item's `webUrl` so the user can download it directly.
 
 ## Examples
 
@@ -58,7 +56,7 @@ Never fabricate binary content or download URLs.
 ### Download a drive item converted to PDF
 ```json
 {
-  "path": "/me/drive/items/{id}/content",
-  "format": "pdf"
+	"path": "/me/drive/items/{id}/content",
+	"format": "pdf"
 }
 ```

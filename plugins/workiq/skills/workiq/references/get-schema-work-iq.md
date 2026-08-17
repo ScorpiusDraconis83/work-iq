@@ -22,6 +22,29 @@ Retrieve the OpenAPI schema for a WorkIQ path or operation — fields available 
 > **⚠️ Parameter shape gotchas.**
 > - `operationType` is the **only** way to pick the operation flavor — no `httpMethod`, `method`, `verb`, `apiVersion`, `operationIds`, or `backend` param exists on `get_schema`. `fetch`→GET, `create`→POST to a collection, `update`→PATCH, `action`→action verb body.
 
+## Request schema vs response schema
+
+`get_schema` is request-oriented for writes:
+
+- `fetch` describes the entity/response shape available to a GET operation.
+- `create`, `update`, and `action` describe the request body used to invoke that operation.
+- In particular, `operationType: "action"` returns the action request-body schema. It does
+  **not** expose the action's response resource schema.
+
+There is no request/response selector, response mode, or second action schema to request. Do
+not present action request fields as response properties. If the user asks what an action
+returns, state which request shape MCP confirmed and that the response shape is not exposed;
+do not fill the gap from web documentation or general Graph knowledge. For a known action
+path, call `get_schema` exactly once and stop — do not call `search_paths`, retry another
+format, or search for a separate response-resource path.
+
+For example, `get_schema` on
+`/drives/{drive-id}/items/{driveItem-id}/createUploadSession` with
+`operationType: "action"` returns `drives.items.createUploadSession_request`. It describes
+the request `item` / `driveItemUploadableProperties` shape and does **not** expose the
+returned `uploadSession` resource or fields such as `uploadUrl`, `expirationDateTime`, and
+`nextExpectedRanges`. Answer with that limitation after the single schema call.
+
 ## When to Use
 
 - Before `create_entity` / `update_entity` to confirm body shape
@@ -58,7 +81,7 @@ Retrieve the OpenAPI schema for a WorkIQ path or operation — fields available 
 
 ## Asking for the "schema" of an action
 
-For "schema for sending an email" / "what parameters does sendMail take?" / "body for accepting a meeting?", call `get_schema` **once** with `{ "path": "<action-path>", "operationType": "action" }`. This returns the request-body JSON Schema — for `/me/sendMail`, `Message` (a `microsoft.graph.message`) plus `SaveToSentItems` (boolean). Surface those properties directly.
+For "schema for sending an email" / "what parameters does sendMail take?" / "body for accepting a meeting?", call `get_schema` **once** with `{ "path": "<action-path>", "operationType": "action" }`. This returns the request-body JSON Schema — for `/me/sendMail`, `Message` (a `microsoft.graph.message`) plus `SaveToSentItems` (boolean). Surface those properties as request fields, not as the action's response fields.
 
 Do **not**:
 

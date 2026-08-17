@@ -44,13 +44,13 @@ See the **URL Format Rules** section of `SKILL.md` for full examples.
 
 **Fix:** Drop the extra argument and retry with `filter` only. If the user explicitly asked for SharePoint REST, Dataverse, or any other API surface, report honestly that WorkIQ surfaces Graph paths through `search_paths` and the other surface is not available here. Do not invent a tool variant or alternate backend.
 
-## `fetch_blob` returns "Access denied for the requested path."
+## `fetch_blob` returns "tool does not exist"
 
-**Symptom:** The call returns a non-200 envelope whose `error` string or nested `error.error.code` / `error.error.message` reports access denied. The `error` field is optional on failures; if it is absent, use `statusCode` and `requestId` rather than assuming the cause.
+**Symptom:** A call to `fetch_blob` returns "tool does not exist", or the tool is missing from the available-tools list.
 
-**Cause:** Tenant policy denies the blob path family — the same policy layer described under "Server may deny families by policy" in `SKILL.md`. This is not an authentication or catalog problem; reconnecting the MCP server will not change it.
+**Cause:** `fetch_blob` is part of the current WorkIQ MCP surface, so this usually means the host did not load the current tool catalog or the logical name was called without its host-specific prefix.
 
-**Fix:** Do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
+**Fix:** Re-resolve the exact tool name by scanning for a tool whose name ends with `fetch_blob`, preferring the `workiq` server prefix. If it is still absent, refresh or reconnect the WorkIQ MCP server and retry once. Do not invent variants such as `download_file` or `get_blob`.
 
 ## `upload_blob` returns "tool does not exist"
 
@@ -82,7 +82,7 @@ See the **URL Format Rules** section of `SKILL.md` for full examples.
 
 **Cause:** The WorkIQ MCP server requires tenant admin consent on first use, and the current user must be signed in.
 
-**Fix:** Direct the user to the [Tenant Administrator Enablement Guide](../../../../ADMIN-INSTRUCTIONS.md). For interactive sign-in issues, retry the tool call — the hosted MCP server will prompt for sign-in if needed.
+**Fix:** Direct the user to the [Tenant Administrator Enablement Guide](../../../../../ADMIN-INSTRUCTIONS.md). For interactive sign-in issues, retry the tool call — the hosted MCP server will prompt for sign-in if needed.
 
 ## HTTP 403 Forbidden on an entity tool call
 
