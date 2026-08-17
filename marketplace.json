@@ -9,7 +9,7 @@
       "name": "workiq",
       "source": "./plugins/workiq",
       "description": "Full WorkIQ tool surface \u2014 agentic queries via ask plus direct reads and writes (create, update, delete, send) across emails, meetings, calendar, Planner tasks, documents, Teams, people and contacts, OneDrive, and SharePoint.",
-      "version": "2.0.1"
+      "version": "2.0.2"
     },
     {
       "name": "workiq-preview",
