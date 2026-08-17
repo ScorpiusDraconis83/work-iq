@@ -321,6 +321,10 @@ above) and call the MCP tool.
 - ❌ Calling `get_schema` on paths you already know (contacts, messages, events, drive items).
 - ❌ Using `fetch` to "explore" when the path is already implied by context.
 - ❌ Falling back to dozens of `fetch` calls when `ask` fails — report the failure instead.
+- ❌ Retrying a busy/throttled `ask` before its returned `retryAfterSeconds` delay. Follow any
+  documented bounded fallback immediately. Otherwise, make at most one identical retry only
+  when the runtime can wait the full delay; if it cannot, report the transient failure. Do not
+  retry immediately, alter the question, or fan out into broad fetches.
 
 **Do:** use the path patterns in this document to route directly to the correct tool in 1–2
 calls. If you need the entity ID first, one `fetch` to resolve, then one write tool call.
