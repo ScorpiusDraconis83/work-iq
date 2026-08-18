@@ -40,6 +40,48 @@ The most common Teams routing mistake is mixing these up:
 | Read presence | `fetch` | `/me/presence`, `/users/{id}/presence` |
 | Set my presence | `do_action` | `/me/presence/setUserPreferredPresence` |
 
+For "show my Teams chats", call `fetch` exactly once on
+`/me/chats?$expand=members` and answer from the returned `topic`, `chatType`,
+and `members`. Do not follow or construct `$skip`, and do not add member
+`$select` fields such as `email` or `userId`; those fields are not exposed on
+`conversationMember`. A successful chat list is sufficient; do not make
+enrichment or pagination retries.
+
+For a named channel-member listing, use at most three `fetch` calls: resolve the
+exact team, resolve the exact channel, then call exactly
+`/teams/{teamId}/channels/{channelId}/members`. The deployed members endpoint
+does not allow `$top`; do not add it. Do not request `email` or `userId` with
+`$select` because those are not properties of `conversationMember`. Use the
+returned `displayName` and identity data directly. Do not retry field or query
+variants after a 400.
+
+To mark a named 1:1 chat read, fetch `/me/chats?$expand=members&$top=50` once.
+Select the chat containing the named counterpart and use the signed-in user's
+member identity from that chat. Call
+`/chats/{chatId}/markChatReadForUser` with:
+
+```json
+{"user":{"@odata.type":"#microsoft.graph.teamworkUserIdentity","id":"{signedInMemberId}","tenantId":"{signedInMemberTenantId}","userIdentityType":"aadUser"}}
+```
+
+This is a known deployed contract. Do not call `search_paths` or `get_schema`,
+do not send an empty body, and do not omit `tenantId`. If the complete request
+returns HTTP 500, retry that identical request at most once; do not change the
+payload or explore alternate fields.
+
+To mark a named 1:1 chat unread, use the same bounded chat fetch and signed-in
+member identity, then fetch
+`/chats/{chatId}/messages?$select=createdDateTime&$top=1` for the read cutoff.
+Call `/chats/{chatId}/markChatUnreadForUser` with:
+
+```json
+{"user":{"@odata.type":"#microsoft.graph.teamworkUserIdentity","id":"{signedInMemberId}","tenantId":"{signedInMemberTenantId}","userIdentityType":"aadUser"},"lastMessageReadDateTime":"{returnedCreatedDateTime}"}
+```
+
+Do not call `search_paths` or `get_schema`, send an empty body, omit
+`tenantId`, or probe unsupported member fields. If the complete action returns
+HTTP 500, retry that identical request at most once and stop.
+
 Message body shape (chat and channel): `{"body": {"contentType": "text", "content": "..."}}`.
 Confirm non-obvious payloads (reactions, presence) with `get_schema` before POSTing.
 

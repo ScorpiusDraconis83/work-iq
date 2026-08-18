@@ -27,6 +27,13 @@ Never answer API/path questions from general Graph knowledge, local SQL, filesys
 { "filter": "messages" }
 ```
 
+When the user asks what paths are available, enumerate every confirmed path
+family and operation returned by that `search_paths` call rather than selecting
+only the most common examples. Group related results for readability, such as
+chat messages, channel messages, replies, actions, retained or pinned
+messages, by-ID routes, and hosted content. Do not invent paths absent from the
+result, but do not omit less common confirmed variants.
+
 ### Find calendar paths
 ```json
 { "filter": ".*calendar.*" }

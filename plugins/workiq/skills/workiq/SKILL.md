@@ -1,6 +1,6 @@
 ---
 name: workiq
-description: WorkIQ - Microsoft 365 tool surface for agents. Use for any workplace question or write action where data lives in M365. Supports semantic `ask` plus tools (`fetch`, create/update/delete, actions, functions, fetch_blob, path/schema discovery) for mail, meetings/calendar, documents/files, Teams chats/channels, OneDrive/SharePoint, and people. Read triggers, "what did [person] say", priorities/top of mind, meeting decisions/action items, summarize thread/chat, find emails/docs, list meetings/messages/files/channels, project status/updates, "what changed since", download file content. Write triggers, send/reply/forward email, create/update/accept/decline meetings, mark read, delete drafts/items, send/post/reply/react in Teams, set presence. Discovery triggers, available endpoints/paths, fields, request body, schema/data model. Prefer `ask` for synthesis; use entity tools for exact reads/writes.
+description: WorkIQ tools for Microsoft 365 workplace data and actions. Use for email, calendar events and meetings, files, SharePoint, OneDrive, Teams, people, Planner, and other M365 requests. Triggers include cancel meeting or event, accept or decline meetings, create or update events, create an upload session or replace an existing OneDrive file, find or summarize workplace content, send or reply to mail, manage or download files, manage tasks, and discover M365 paths or schemas. Prefer `ask` for synthesis and structured entity tools for exact reads, writes, and binary downloads with `fetch_blob`.
 compatibility: >
   Uses the hosted WorkIQ MCP endpoint. No local package is required for MCP
   tool calls.
@@ -8,7 +8,7 @@ compatibility: >
 
 # WorkIQ
 
-WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`, `fetch_blob`).
+WorkIQ connects AI agents to Microsoft 365 Copilot for workplace intelligence grounded in organizational data. This skill teaches the model how to use the full WorkIQ toolset: the agentic `ask` tool for semantic questions and the fast **entity tools** for direct structured access to M365 data (`fetch`, `create_entity`, `update_entity`, `delete_entity`, `do_action`, `call_function`, `search_paths`, `get_schema`).
 
 ## 🛑 STOP — Read This Before Your First Tool Call
 
@@ -46,7 +46,13 @@ See [Resolving tool names in your host](#resolving-tool-names-in-your-host) belo
 | Open-ended "any updates" / catch-up questions | "Any updates I should know about?" | `ask` |
 | Listing meetings on a known date/range | "What meetings do I have Monday?" | `fetch` (`/me/calendarView`) |
 | Listing emails with concrete filters | "Show my unread emails from Rob this week" | `fetch` (`/me/messages`) |
-| Listing Teams chats / channels / members | "List the channels in the DevX team" | `fetch` |
+| Downloading the first file attachment from Inbox | "Find the first inbox email with a file attachment and download that attachment" | Use exactly two calls. First, `fetch` `/me/mailFolders/inbox/messages?$filter=hasAttachments%20eq%20true&$top=10&$select=id,subject,receivedDateTime,hasAttachments&$expand=attachments($select=id,name,contentType,size,isInline)`; do not combine this filter with `$orderby` and do not use `$skip`. In returned order, select the first message containing a file attachment and its first file attachment. Then call `fetch_blob` `/me/messages/{messageId}/attachments/{attachmentId}/$value`. Insert the complete `message.id` and selected `fileAttachment.id` directly from the structured response without retyping, shortening, normalizing, or reconstructing either value. Before the single `fetch_blob` call, compare both path segments character-for-character with their source fields and correct any mismatch before calling. The suffix is the literal `/$value` with no space between `/` and `$`; construct the path once and do not retry formatting variants. When the user requests raw content, include the returned `base64Content` in the final answer, or the actual materialized file path when the host wrote the bytes to disk; do not merely state that the content was downloaded. If the bounded page contains no file attachment, report not found instead of enumerating the mailbox, following `@odata.nextLink`, or retrying alternate filters. |
+| Summarizing an exact mail thread and creating a reply draft | "Summarize the named thread, then create a reply draft starting with the requested marker" | Use exactly two calls. First, `fetch` `/me/messages?$search=%22{urlEncodedExactSubject}%22&$select=id,subject,conversationId,from,toRecipients,ccRecipients,receivedDateTime,body,bodyPreview,isDraft&$top=5`; select the latest non-draft exact-subject match and summarize only facts supported by its evidence. Then call `do_action` `/me/messages/{messageId}/createReply` with `{"Comment":"{requestedMarkerAndGroundedReplyBody}"}`. Use `createReply`, never `createReplyAll`, and never send. Skip `ask`, `get_schema`, and a second fetch. Use the returned message id verbatim without proactive encoding or double-encoding; if an opaque id containing reserved characters is rejected by path transport, report that failure instead of exploring alternate encodings. Do not invent decisions, owners, dates, or completed actions that the thread leaves unspecified. |
+| Listing my Teams chats | "Show my Teams chats" | Call `fetch` exactly once on `/me/chats?$expand=members` and answer from the returned `topic`, `chatType`, and `members`. Do not add member `$select` fields such as `email` or `userId`, construct or follow `$skip`, fetch members per chat, or make enrichment calls. |
+| Listing members of a named Teams channel | "List the members of General in the DevX team" | Use at most three `fetch` calls: resolve the exact team, resolve the exact channel, then fetch `/teams/{teamId}/channels/{channelId}/members`. Do not add `$top` or select `email`/`userId`; those options are unsupported on the deployed members endpoint. Answer from returned `displayName` and identity data, and do not retry query variants after a 400. |
+| Summarizing exact marker messages in a shared Teams channel | "In General, summarize only messages containing exact marker `[Eval] Project X abc123`" | Do not use `ask`: shared history adds noise and newly posted messages may not be semantically indexed. Use three structured `fetch` calls: `/me/joinedTeams?$select=id,displayName`; `/teams/{teamId}/channels?$select=id,displayName`; then `/teams/{teamId}/channels/{channelId}/messages?$select=id,createdDateTime,body&$top=50`. Do not add `$orderby`; filter locally to the exact marker and do not fetch replies unless requested. |
+| Summarizing supplied exact Teams message URLs | "Summarize these two exact channel messages" | Use one batched `fetch` containing every supplied `/teams/{teamId}/channels/{channelId}/messages/{messageId}` URL, then synthesize locally. Do not use `ask` or search broader channel history. |
+| Rolling up exact Mail, Calendar, and Teams entity URLs | "Use these exact entities to summarize status and blockers" | Use one batched `fetch` containing every supplied entity URL, then synthesize locally. Do not use `ask`, tenant-wide search, path discovery, or additional source lookups. |
 | Sending/replying/reacting in Teams, setting presence | "Send a chat to Alex", "Post in the Daily channel", "React with 👍", "Set me to Busy" | entity tools on `/chats/...` or `/teams/...` — see `references/teams-work-iq.md` |
 | Fetching a known entity by ID | "Get event `AAMk...` details" | `fetch` |
 | Listing files in a OneDrive/SharePoint folder | "List files in my OneDrive 'Specs' folder" | `fetch` |
@@ -55,8 +61,28 @@ See [Resolving tool names in your host](#resolving-tool-names-in-your-host) belo
 | Get a personal contact by name | "Get the contact card for Morgan Avery" | `fetch` (`/me/contacts?$filter=...`) — subject to server policy |
 | List or manage Outlook categories | "What Outlook categories do I have?" | `fetch` (`/me/outlook/masterCategories`); writes subject to server policy |
 | Org chart / direct reports / manager lookup | "Who are Rob's direct reports?" | `fetch` (`/users/{id}/directReports`) |
-| What's new/changed/removed since a point in time | "What's new in my Inbox since this morning?", "What's changed on my calendar since yesterday?", "What's been added to my contacts recently?" | `call_function` (delta — `/me/mailFolders/inbox/messages/delta`, `/me/calendarView/delta?...`, `/me/contacts/delta`). **Never call delta via `fetch`** — see `references/call-function-work-iq.md` |
+| Signed-in user's profile photo metadata | "Show my profile photo dimensions and content type" | `fetch` `/me?$select=id`, then `fetch` `/users/{id}/photo?$select=id,width,height`. Do not use the policy-denied `/me/photo` alias, request `/$value`, or put `@odata.mediaContentType` in `$select`; read the media content type annotation returned with the metadata. |
+| Finding a 30-minute slot for the whole team | "Find a 30-min slot when the whole team is free this week" | Do not use `ask`. Resolve `/me`, `/me/manager`, and the manager's `/users/{managerId}/directReports` with at most two `fetch` calls, then call `do_action` `/me/calendar/getSchedule` exactly once with all schedulable addresses and `AvailabilityViewInterval: 30`. Compute the earliest common working-hours slot from that response; skip `search_paths`, `get_schema`, `findMeetingTimes`, and a second verification action. |
+| Finding the most recent meeting with a person and explaining its agenda | "Which candidate event was my latest meeting with Alex, and what was it about?" | Use structured `fetch`, not `ask`. Fetch bounded candidates or a calendar window with `subject,start,end,body,bodyPreview,attendees,organizer`; retain actual attendee matches, sort by start descending, and answer from the selected event body. |
+| Comparing people across two exact calendar events | "Who appears in both of these two event URLs?" | Use one batched `fetch` for both exact `/me/events/{id}?$select=subject,organizer,attendees` URLs. Build each people set from organizer plus attendees, normalize by lowercase email, compute the intersection locally, and report non-overlaps. Do not use `ask`. |
+| What's new/changed/removed since a point in time | "What's new in my Inbox since this morning?", "What's changed on my calendar since yesterday?", "What's been added to my contacts recently?" | `call_function` (delta — `/me/mailFolders/inbox/messages/delta`, `/me/calendarView/delta?...`, `/me/contacts/delta`, `/teams/{teamId}/channels/{channelId}/messages/delta`). **Never call delta via `fetch`** — see `references/call-function-work-iq.md` |
 | Sending mail, accepting/declining meetings | "Send this draft", "Accept the 2pm meeting" | `do_action` |
+| Tentatively accepting a meeting by title | "Mark the Office hours sync as tentative" | `fetch` the exact event ID, then `do_action` `/me/events/{id}/tentativelyAccept` with `{"sendResponse":false}`. Do not include an empty `comment`; do not call `get_schema` for this known contract. |
+| Declining a meeting by title without a response message | "Decline the upcoming Daily standup invite" | `fetch` the exact event ID, then `do_action` `/me/events/{id}/decline` with `{"sendResponse":false}`. Omit `comment`; do not call `get_schema` or retry alternate payloads. |
+| Cancelling an organizer-owned meeting by title | "Cancel the Friday staff meeting I organized" | `fetch` the exact event ID, then `do_action` `/me/events/{id}/cancel` with `{"Comment":""}`. This is a known contract: do not call `search_paths` or `get_schema`. A `202` response confirms acceptance; do not fetch again solely to verify. |
+| Forwarding a calendar invite by title | "Forward the Sprint Planning invite to Casey Foster" | Use one batched `fetch` to resolve both the exact event (`/me/events?$filter=subject%20eq%20'{odataEscapedAndUrlEncodedSubject}'&$select=id,subject,start,end,organizer,attendees,isOrganizer&$top=10`) and the exact recipient (`/users?$filter=displayName%20eq%20'{odataEscapedAndUrlEncodedDisplayName}'&$select=id,displayName,mail,userPrincipalName&$top=5`). Copy the returned event `id` verbatim, including any trailing `=`, and call `do_action` `/me/events/{eventId}/forward` with `{"ToRecipients":[{"emailAddress":{"name":"{displayName}","address":"{mailOrUserPrincipalName}"}}],"Comment":""}`. This is a known contract: skip `get_schema`, `calendarView`, mail lookup, `ask`, and verification fetches; do not rewrite `=` as `%3D` or retry encoded ID variants. |
+| Creating an upload session for an existing OneDrive file | "Create an upload session to replace my file; do not upload content" | `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file&$top=10` to resolve the exact driveItem and retain `parentReference.driveId` plus item `id`, then `do_action` `/drives/{driveId}/items/{itemId}/createUploadSession` with `{}`. This is a validated deployed contract: skip `search_paths` and `get_schema`, do not add an `item` wrapper, and do not upload file content. |
+| Creating a folder in personal OneDrive | "Create a OneDrive folder named Project files" | Call `create_entity` exactly once with parent URL `/me/drive/root/children` and `{"name":"{requestedName}","folder":{},"@microsoft.graph.conflictBehavior":"fail"}`. This is a known deployed contract. Do not call `get_schema`, `search_paths`, fetch the root, or resolve a drive-scoped parent first. |
+| Copying a named OneDrive file to a named folder | "Copy Q3 plan.txt to Shared" | Use two `call_function` calls to `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file,folder&$top=10`, retain the source `parentReference.driveId`, then `do_action` `/drives/{driveId}/items/{sourceId}/copy` with `{"parentReference":{"driveId":"{driveId}","id":"{folderId}"}}`. Skip `search_paths`, `get_schema`, and verification fetches. |
+| Renaming a OneDrive file | "Rename Draft.txt to Final.txt" | `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file&$top=10` to resolve the exact driveItem and retain `parentReference.driveId` plus item `id`, then `update_entity` `/drives/{driveId}/items/{itemId}` with `{"name":"Final.txt"}`. Skip `search_paths` and `get_schema`; do not PATCH `/me/drive/items/{id}`. |
+| Deleting a named OneDrive file | "Remove Q3 plan.txt from my drive" | `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file&$top=10`, select the exact file-name match, and copy its `parentReference.driveId` and `id` verbatim without truncating, reconstructing, or normalizing either value. Then call `delete_entity` exactly once on `/drives/{driveId}/items/{itemId}`. Do not add `eTag` or `@odata.etag` to `$select`; only when the normal lookup response includes an eTag, pass that returned value as `If-Match`. If a newly created file is not indexed yet, use at most one bounded `/me/drive/root/children` fallback before the same drive-scoped delete. Do not use `/me/drive/items/{id}`, `search_paths`, or malformed-id retries. |
+| Summarizing a numbered section in an exact named technical specification | "Find this exact technical spec, identify its owner and latest numbered section, then summarize that section" | Use `ask` exactly once with the exact filename in the question so enterprise search can ground both file metadata and the semantic section summary. Do not pre-resolve with `call_function`, pass `fileUrls`, call `fetch_blob`, or make follow-up entity calls. This semantic-summary pattern is an exception to the named-file metadata route. |
+| Reading the first accessible SharePoint site's default drive or lists | "Show the first site's drive metadata", "List the first site's lists" | `fetch` `/sites?search=*&$select=id,displayName,name,webUrl&$top=1`, treat the first returned item as "first accessible", then `fetch` `/sites/{siteId}/drive` or `/sites/{siteId}/lists`. The parameter is `search=*`, **not** `$search=*`; do not use `ask`, guessed search terms, or an empty search. See `references/sharepoint-work-iq.md`. |
+| Finding a named group-backed SharePoint site's metadata | "Find the Contoso Research SharePoint site and return its exact display name and URL" | Use exactly two `fetch` calls: first resolve the backing group with `/groups?$filter=displayName%20eq%20'{odataEscapedAndUrlEncodedSiteName}'&$select=id,displayName&$top=1`, then fetch `/groups/{groupId}/drive?$select=id,webUrl,sharePointIds`. Return the group's exact `displayName` and `sharePointIds.siteUrl`. Do not call `/groups/{groupId}/sites/root`, `search_paths`, broaden into `/sites?search` retries, infer the site URL, or fetch the site again. If `sharePointIds.siteUrl` is absent, report that limitation. |
+| Listing documents from a named group-backed SharePoint team site | "List documents from the Contoso Research SharePoint team site" | Resolve the backing group by the user's complete, exact site display name: `fetch` `/groups?$filter=displayName%20eq%20'{odataEscapedAndUrlEncodedSiteName}'&$select=id,displayName&$top=1` (do not remove prefix words from the supplied name). Then use exactly `fetch` `/groups/{groupId}/drive?$expand=root` without adding `$select` or nested-expand variants. Copy the returned drive `id` and `root.id` verbatim, then call exactly `fetch` `/drives/{driveId}/items/{rootId}/children?$select=id,name,webUrl,file,folder,parentReference&$top=5`. Do not use `/root/children`, Microsoft Search, `search_paths`, list/listItem fallbacks, or malformed-id retries. Use this for named Microsoft 365 group-backed team sites, especially when site search fails or the name contains characters that OData `$search` rejects. See `references/sharepoint-work-iq.md`. |
+| Downloading an explicitly requested SharePoint site-page file | "Download the named .aspx page from a named site-page library" | Use exactly six calls. Resolve the backing group by the complete exact site name; fetch `/groups/{groupId}/drive?$select=id,webUrl,sharePointIds`; fetch `/sites/{sharePointIds.siteId}/lists?$filter=displayName%20eq%20'{odataEscapedAndUrlEncodedLibraryName}'&$select=id,displayName,webUrl,list&$top=10`; fetch `/sites/{siteId}/lists/{listId}/items?$select=id,webUrl&$expand=fields($select=FileLeafRef,Title)&$top=50` and select the exact requested filename; fetch `/sites/{siteId}/lists/{listId}/items/{itemId}/driveItem?$select=id,name,webUrl,parentReference,file,size`; then `fetch_blob` `/drives/{parentReference.driveId}/items/{driveItemId}/content`. For the download item segment, use `driveItem.id`, not the list item id, and insert the complete structured-response value without retyping, shortening, normalizing, or reconstructing it. Before the single `fetch_blob` call, compare that item segment character-for-character with `driveItem.id` and correct any mismatch before calling rather than retrying after failure. Copy every other returned id verbatim. Do not use site search, `/sites/{id}/drives`, root-children guesses, Microsoft Search, `search_paths`, or download-path retries. |
+| Searching or downloading documents across SharePoint team sites | "Find a SharePoint document and download its raw content", "List documents from SharePoint team sites" | `do_action` `/search/query` for `driveItem` documents, choose a file document (not a folder, home page, SitePages entry, or another `.aspx` page unless explicitly requested), then call `fetch_blob` `/drives/{driveId}/items/{itemId}/content` when raw bytes are requested. Return exact file name, site display name when required, and `webUrl`; see `references/sharepoint-work-iq.md` and `references/do-action-work-iq.md`. |
+| Listing all recent documents in one SharePoint site | "List every document modified in one site since a date; include editor and date" | Call `do_action` `/search/query` exactly once. Use a `driveItem` query combining the exact team-site `path`, `IsDocument=true`, and `lastModifiedTime>=YYYY-MM-DD`; set `size` to `500` (the deployed maximum; `501` is rejected), and request `name`, `webUrl`, `lastModifiedDateTime`, `lastModifiedBy`, `createdBy`, and `parentReference`. Do not probe a larger size or retry. Search may return duplicate hits for one driveItem: de-duplicate by driveItem identity or `webUrl`, state raw-hit and unique-document counts separately, and list each unique document exactly once. |
 | Creating a calendar event, draft, or task | "Create a calendar event Friday at 3pm" | `create_entity` |
 
 **DO NOT say "I don't have access to emails/meetings/messages"** - use WorkIQ instead!
@@ -75,8 +101,8 @@ See [Resolving tool names in your host](#resolving-tool-names-in-your-host) belo
 Follow the user's request through to completion. A discovery or read call **alone** does not satisfy a request that also asked you to act.
 
 1. **Path discovery** ("endpoint", "available operations", "what can I do with X") → `search_paths` first. Continue to the read/write tool if the prompt also asks to act.
-2. **Schema inspection** ("schema", "data model", "fields", "what does X take") → `get_schema` first. Continue to the write/action tool if the prompt also asks to act.
-3. **Exact entity read or mutation by title/name/channel/thread** → `fetch` to resolve the target's ID, then `update_entity` / `delete_entity` / `do_action`. Do not use `ask` to resolve exact titled events, messages, drafts, folders, Teams chats/channels, or threads.
+2. **Schema inspection** ("schema", "data model", "fields", "what does X take") → `get_schema` first. With `operationType: "action"`, it returns the action's **request-body schema** for constructing `jsonBody`; it does **not** expose the action's response resource schema. If the user asks for action response fields on a known path, call `get_schema` exactly once, report that limitation, and stop. Do not call `search_paths`, retry another format, or hunt for a response-schema path. Continue to the write/action tool only if the prompt also asks to act.
+3. **Exact entity read or mutation by title/name/channel/thread** → `fetch` to resolve the target's ID, then `update_entity` / `delete_entity` / `do_action`. Named OneDrive file search is the exception: use `call_function` `/me/drive/root/search(q='...')`. Do not use `ask` to resolve exact titled events, messages, drafts, folders, Teams chats/channels, or threads.
 4. **Semantic summary/status/decisions** → `ask`. If the prompt then asks to draft, send, create, update, delete, forward, or react, continue with the mutation tool — the `ask` answer alone is incomplete.
 
 ### Resolve-then-act — concrete examples
@@ -88,7 +114,11 @@ When the user asks to delete, update, send, forward, copy, move, or react to som
 | "Mark email as read" | `fetch` to find the message | `update_entity` `/me/messages/{id}` with `{"isRead": true}` |
 | "Forward email to X" | `fetch` to find the message | `do_action` `/me/messages/{id}/forward` |
 | "Send email to X" | — | `do_action` `/me/sendMail` |
-| "Copy file to folder" | `fetch` to find file and target folder | `do_action` `/me/drive/items/{id}/copy` |
+| "Cancel the X meeting I organized" | `fetch` to find the event and verify `isOrganizer` | `do_action` `/me/events/{id}/cancel` with `{"Comment":""}`; accept `202` as success without a verification fetch |
+| "Create an upload session to replace existing file X" | `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file&$top=10` to resolve the exact driveItem and retain `parentReference.driveId` plus item `id` | `do_action` `/drives/{driveId}/items/{itemId}/createUploadSession` with `{}`; do not add `item`, inspect schema, or upload bytes |
+| "Copy file to folder" | Two `call_function` calls to `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file,folder&$top=10`, one for the exact source and one for the exact folder | `do_action` `/drives/{driveId}/items/{sourceId}/copy` with `{"parentReference":{"driveId":"{driveId}","id":"{folderId}"}}`; skip `search_paths`, `get_schema`, and verification fetches |
+| "Move file to folder" | Two `call_function` calls to `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file,folder&$top=10`, one for the exact source and one for the exact folder | `update_entity` `/drives/{driveId}/items/{sourceId}` with `{"parentReference":{"id":"{folderId}"}}`. This is an update, not a `/move` action; skip `search_paths`, `get_schema`, verification fetches, and `/move`. |
+| "Rename file X to Y" | `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')?$select=id,name,parentReference,file&$top=10` to resolve the exact driveItem and retain `parentReference.driveId` plus item `id` | `update_entity` `/drives/{driveId}/items/{itemId}` with `{"name":"Y"}`; skip `search_paths` and `get_schema`, and do not use `/me/drive/items/{id}` |
 | "Set presence to busy" | — | `do_action` `/me/presence/setUserPreferredPresence` — see `references/teams-work-iq.md` |
 | "React to Teams message" | `fetch` to find the message | `do_action` `/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction` |
 | "Delete" any entity | `fetch` to find it | `delete_entity` on the entity URL |
@@ -202,6 +232,13 @@ The primary tool. Ask any workplace question in plain English. This is an **agen
 { "question": "What did Rob say about the API design?" }
 ```
 
+For a one-shot follow-up or broad catch-up prompt, call `ask` once. If no
+`conversationId` is available or Copilot cannot recover the earlier context,
+report that limitation instead of rebuilding the conversation with broad
+`search_paths`, `get_schema`, actions, or many entity calls. At most, make one
+focused `fetch` for a concrete source URL/path returned by `ask`; do not loop
+back into `ask` or enumerate sites and drives.
+
 For detailed usage and examples, read `references/ask-work-iq.md`.
 
 ---
@@ -229,7 +266,7 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 | Teams | `/me/chats`, `/chats/{chatId}/messages`, `/me/joinedTeams`, `/teams/{teamId}/channels/{channelId}/messages`, `/me/presence` | chats vs channels are different surfaces — see `references/teams-work-iq.md` |
 | People | `/me`, `/users/{id}`, `/users/{id}/directReports`, `/me/manager`, `/me/contacts` | profile, org, contacts — see directory-vs-contacts warning below |
 | Outlook categories | `/me/outlook/masterCategories` | list/get/create/update/delete — writes commonly policy-denied |
-| Files | `/me/drive`, `/drives/{id}`, `/sites/{id}` | list/get JSON metadata with `fetch`; download binary content with `fetch_blob` - see `references/fetch-blob-work-iq.md`; uploads are not released yet |
+| Files | `/me/drive`, `/drives/{id}`, `/sites/{id}` | for named-file metadata, call `call_function` once with `/me/drive/root/search(q='{urlEncodedExactName}')` and do not follow with `/me/drive/items/{id}`; use `fetch_blob` for binary content after resolving the item ID — see `references/fetch-blob-work-iq.md`; uploads are not released yet |
 | Change tracking | `/me/mailFolders/inbox/messages/delta`, `/me/calendarView/delta?...`, `/me/contacts/delta` | "what's new/changed since" — via `call_function` only, never `fetch` |
 
 > **Server may deny families by policy.** Tenants can disable specific path families
@@ -242,14 +279,6 @@ Entity tools provide **fast, direct access to specific M365 data** via Work IQ A
 ### Binary downloads use `fetch_blob`; `upload_blob` is not released
 
 Use `fetch_blob` for file content in OneDrive/SharePoint, attachment payloads for messages, calendar events, and profile photos. It accepts a relative WorkIQ `path`, returns up to 4 MB as base64 with content metadata, and supports an optional `format` conversion value on compatible drive-content endpoints. Use `fetch` first only when you need to resolve an item or attachment ID. You should also help the user decode the base64 into a file with the correct extension and MIME type if needed.
-
-`fetch_blob` returns errors in-band: `{"statusCode":..., "sizeBytes":..., "base64Content":"...", "error":"...", "requestId":"..."}`. Always check `statusCode` before using `base64Content`. On a non-200:
-
-- **Access denied:** Do not retry. Return the file's `webUrl` or the parent message's `webLink`; for profile photos, report the policy denial.
-- **Over 4 MB:** Return the file's `webUrl`.
-- **Other errors:** Report `error` and `requestId`.
-
-Never fabricate binary content or download URLs.
 
 `upload_blob` is documented for future reference but **is not part of the current WorkIQ MCP surface**. Attempting to call it returns `tool does not exist`. Do not call it, search for an alternate upload tool, or invent a similar name such as `put_file`.
 
@@ -292,6 +321,10 @@ above) and call the MCP tool.
 - ❌ Calling `get_schema` on paths you already know (contacts, messages, events, drive items).
 - ❌ Using `fetch` to "explore" when the path is already implied by context.
 - ❌ Falling back to dozens of `fetch` calls when `ask` fails — report the failure instead.
+- ❌ Retrying a busy/throttled `ask` before its returned `retryAfterSeconds` delay. Follow any
+  documented bounded fallback immediately. Otherwise, make at most one identical retry only
+  when the runtime can wait the full delay; if it cannot, report the transient failure. Do not
+  retry immediately, alter the question, or fan out into broad fetches.
 
 **Do:** use the path patterns in this document to route directly to the correct tool in 1–2
 calls. If you need the entity ID first, one `fetch` to resolve, then one write tool call.
@@ -355,33 +388,40 @@ Reference examples use `{id}`, `{listId}`, `{teamId}`, `{taskId}`, `{driveId}`, 
 
 ### "Draft", "compose", "prepare reply" requires a persisted draft
 
-When the user says "draft an email", "compose a reply", "prepare a response", or any variant
-asking the draft to *exist* (not just suggest wording), call `create_entity` to POST:
+When the user asks for a draft to *exist* (not just suggested wording), persist it
+without sending:
 
-- `/me/messages` for a fresh draft
-- `/me/messages/{id}/createReply`, `/createReplyAll`, or `/createForward` for replies/forwards
-  (these are `create_entity` POSTs, **not** `do_action`)
+- For a fresh message draft, call `create_entity` with parent URL `/me/messages`.
+- For a reply draft, call `do_action` on `/me/messages/{id}/createReply`.
+- For a reply-all draft, call `do_action` on `/me/messages/{id}/createReplyAll`.
+- For a forward draft, call `do_action` on `/me/messages/{id}/createForward`.
+
+`createReply`, `createReplyAll`, and `createForward` are Graph actions even though
+they create draft resources. Using `do_action` for these endpoints does **not** send
+the message; the separate `/send`, `/reply`, `/replyAll`, and `/forward` actions send.
+Do not pass an action path as the `parentUrl` of `create_entity`.
 
 Generating draft text inline does NOT satisfy the request — the user can't open it in Outlook.
 A common failure: call `ask` for the summary half of a "summarize then draft" chain and stop;
-the `create_entity` step is required.
+the draft action is still required.
 
 ### Schema for action verbs
 
-Action verbs (camelCase verb at end of path: `/me/sendMail`, `/me/messages/{id}/forward`,
+Action verbs (camelCase verb at end of path: `/me/sendMail`,
+`/me/messages/{id}/createReply`, `/createReplyAll`, `/createForward`, `/forward`,
 `/me/events/{id}/accept`, `/decline`, `/copy`, `/move`, `/reply`, `/getSchedule`,
 `/findMeetingTimes`) — get the body schema via `get_schema` with `operationType: "action"`. Do
 **not** substitute a related entity's schema — the wrapper shape differs (`sendMail` →
-`{Message, SaveToSentItems}`, `copy` → `{destinationId}`, etc.).
+`{Message, SaveToSentItems}`, `copy` → `{destinationId}`, etc.). This is the action request
+body, not the resource returned after the action succeeds.
 
 ### Entity tool reference
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
 | `search_paths` | Discover available API paths | `filter` (regex, **required**) |
-| `get_schema` | Inspect fields and body shape for a path | `path`, `operationType` (`fetch`/`create`/`update`/`action`), `format` |
+| `get_schema` | Inspect an operation schema: fetch entity/response shape, or create/update/action request body | `path`, `operationType` (`fetch`/`create`/`update`/`action`), `format` |
 | `fetch` | Fetch entities by path (GET) | `entityUrls[]` — supports OData (`$filter`, `$select`, `$top`) |
-| `fetch_blob` | Download binary content (file bytes, attachment payloads) | `path`, `format` (optional) |
 | `call_function` | Call named OData functions — GET-shaped, side-effect-free, parenthesised inline params (e.g. `delta`, `reminderView`) | `functionUrl` with inline function params |
 | `create_entity` | Create a new entity (POST to collection) | `parentUrl`, `jsonBody` |
 | `update_entity` | Update fields on an existing entity (PATCH) | `entityUrl` with ID, `jsonBody` |
@@ -393,12 +433,12 @@ Read the relevant reference file for full parameter details and examples:
 - `references/search-paths-work-iq.md` — if you need to discover what paths are available
 - `references/get-schema-work-iq.md` — if you need to understand an entity's fields before reading or writing
 - `references/fetch-work-iq.md` — if you need to fetch structured or filtered M365 data
-- `references/fetch-blob-work-iq.md` — if you need to download file bytes, attachment payloads, or other binary content
 - `references/call-function-work-iq.md` — if the path uses OData function call syntax (e.g., `reminderView(...)`, `delta`)
 - `references/create-entity-work-iq.md` — if you need to create a new calendar event, email draft, task, etc.
 - `references/mail-work-iq.md` — if you need to find, draft, send, reply, forward, move, or delete mail (covers `$search` vs `$filter` and the mail-delta endpoint)
 - `references/tasks-work-iq.md` — if you need to list, create, update, complete, or delete Planner tasks
 - `references/teams-work-iq.md` — if you need to send, reply, react, or read Teams chat/channel messages, or get/set presence
+- `references/sharepoint-work-iq.md` — if you need to resolve SharePoint sites, group-backed team sites, document libraries, document search results, or raw SharePoint file content
 - `references/update-entity-work-iq.md` — if you need to update fields on an existing entity
 - `references/delete-entity-work-iq.md` — if you need to delete an entity
 - `references/do-action-work-iq.md` — if you need to send mail, accept/decline meetings, copy/move messages
