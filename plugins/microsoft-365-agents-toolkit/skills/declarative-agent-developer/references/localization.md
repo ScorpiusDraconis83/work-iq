@@ -7,14 +7,14 @@
 1. ⛔ Tokenize `declarativeAgent.json` → replace `name`, `description`, all `conversation_starters[].title` and `.text` with `[[token]]` syntax
 2. ⛔ Create language files → `en.json` (default) + one per additional language, each with `name.short`, `name.full`, `description.short`, `description.full`, and `localizationKeys` mapping EVERY token
 3. ⛔ Update `manifest.json` → add `localizationInfo` with `defaultLanguageTag`, `defaultLanguageFile`, `additionalLanguages`
-4. ⛔ Deploy → `npx -y --package @microsoft/m365agentstoolkit-cli atk provision --env local --interactive false`
+4. ⛔ Validate → `wiqd agent validate`; provision only for an explicit deploy, provision, test, share, or publish request
 
 **For adding a language to an already-localized agent (Workflow B):**
 
 1. Read existing default language file to get the list of `localizationKeys`
 2. Create new `{lang}.json` with the SAME set of keys, translated values
 3. Add new entry to `additionalLanguages` in `manifest.json`
-4. ⛔ Deploy
+4. ⛔ Validate; provision only for an explicit deploy, provision, test, share, or publish request
 
 ---
 
@@ -213,15 +213,17 @@ Add the `localizationInfo` section to `manifest.json`:
 - Language files live in `appPackage/` alongside the manifests
 - Use language-only tags (e.g., `en` rather than `en-us`) for top-level translations; add region-specific overrides only when needed
 
-### Step A4: Deploy — MANDATORY
+### Step A4: Validate — MANDATORY
 
-After completing ALL localization changes, deploy the agent:
+After completing all localization changes, validate the agent:
 
 ```bash
-npx -y --package @microsoft/m365agentstoolkit-cli atk provision --env local --interactive false
+wiqd agent validate
 ```
 
-Then read `M365_TITLE_ID` from `env/.env.local` and present the test link. **⛔ Never skip deployment after localization changes.**
+If validation fails, report the errors and follow the workspace-gate error protocol. Provision
+only for an explicit deploy, provision, test, share, or publish request after validation passes;
+if provisioned, present the returned deep link.
 
 ---
 
@@ -260,15 +262,16 @@ Add the new language to the `additionalLanguages` array:
 
 **⛔ Do NOT modify existing language files or the `defaultLanguageFile` entry.** Only add to `additionalLanguages`.
 
-### Step B4: Deploy — MANDATORY
+### Step B4: Validate — MANDATORY
 
-Deploy the agent:
+Validate the agent:
 
 ```bash
-npx -y --package @microsoft/m365agentstoolkit-cli atk provision --env local --interactive false
+wiqd agent validate
 ```
 
-Then present the test link. **⛔ Never skip deployment.**
+Provision only for an explicit deploy, provision, test, share, or publish request; if provisioned,
+present the returned deep link.
 
 ---
 
@@ -348,7 +351,7 @@ my-agent/
 2. **Keep token names descriptive** — use `starter_vpn_title` not `key1`.
 3. **Do NOT localize instructions** — externalize to `instructions.txt` via `$[file]('instructions.txt')`. Never use `[[tokens]]` for instructions.
 4. **Schema version consistency** — `$schema` in language files must match `manifest.json`.
-5. **Always deploy after localization changes.**
+5. **Always validate after localization changes; provision only when explicitly requested.**
 6. **Do NOT invent translations** — ask the user for translated strings. Never machine-translate without confirmation.
 7. **Tokenization is MANDATORY** — language files have no effect without `[[token]]` syntax in the manifests.
 
@@ -363,8 +366,8 @@ my-agent/
 - [ ] A default language file exists (e.g., `en.json`) with `name.short`, `name.full`, `description.short`, `description.full`, and ALL `localizationKeys`
 - [ ] Every additional language file has the EXACT SAME set of `localizationKeys` as the default
 - [ ] `manifest.json` has `localizationInfo` with `defaultLanguageTag`, `defaultLanguageFile`, and `additionalLanguages`
-- [ ] I deployed with `npx -y --package @microsoft/m365agentstoolkit-cli atk provision --env local --interactive false`
-- [ ] I presented the test link
+- [ ] I validated with `wiqd agent validate`
+- [ ] If the user requested deployment, provisioning, testing, sharing, or publishing, I provisioned and presented the returned deep link
 
 **If you cannot check ALL boxes, you are NOT done.** Go back and complete the missing steps.
 
