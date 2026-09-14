@@ -365,7 +365,7 @@ wiqd doctor
 ### Common Issues
 
 **"Command not found":**
-- Install wiqd using the supported command shown at the start of this guide
+- Follow the current installation guidance in the [official wiqd documentation](https://aka.ms/wiqd/docs)
 - Restart the terminal, then verify with `wiqd --version`
 
 **"Authentication required":**

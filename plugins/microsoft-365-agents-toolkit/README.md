@@ -20,7 +20,7 @@ Toolkit for building Microsoft 365 Copilot declarative agents.
 "Add web search to my agent"
 
 # Deploy
-"Deploy my agent with ATK"
+"Deploy my declarative agent"
 
 # Create evals
 "Create an eval suite for my  agent based on it's capabilities."

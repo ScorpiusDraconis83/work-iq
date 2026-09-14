@@ -185,7 +185,7 @@ This workflow **only** handles project creation and agent context setup. After s
 
 | Error | Action |
 |-------|--------|
-| wiqd CLI not installed | Stop. Show the supported wiqd installation command. |
+| wiqd CLI not installed | Stop. Direct the user to the [official wiqd documentation](https://aka.ms/wiqd/docs) for current installation guidance. |
 | Directory not empty | Stop. Show error message. Do not proceed. |
 | Invalid project name | Warn and suggest a corrected name. |
 | `wiqd agent create` command fails | Report the error with full output. Do not retry. |

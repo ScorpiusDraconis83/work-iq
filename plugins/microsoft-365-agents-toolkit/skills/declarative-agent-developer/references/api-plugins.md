@@ -49,20 +49,18 @@ wiqd agent add action \
 | `--openapi-spec` | URL or local file path to the OpenAPI specification. |
 | `--operations` | Comma-separated list of operations to include (format: `METHOD /path`). |
 
-### ⚠️ CRITICAL: Use Absolute Paths for Local Files
+### Local File Paths
 
-When using a local OpenAPI specification file, you **MUST use an absolute path**:
+`--openapi-spec` accepts relative and absolute local file paths. Relative paths are resolved from
+the current working directory, so prefer a project-relative path when the specification belongs
+to the project:
 
 ```bash
-# ✅ CORRECT - Absolute path
---openapi-spec /home/user/project/openapi.json
-
-# ❌ WRONG - Relative path (will fail!)
---openapi-spec ./openapi.json
---openapi-spec openapi.json
+--openapi-spec ./api/openapi.yaml
 ```
 
-**Why?** An absolute path avoids ambiguity about the project working directory and ensures the specification can be located reliably.
+Use an absolute path when the specification is outside the project or when the working directory
+is uncertain.
 
 ### Operation Format
 
