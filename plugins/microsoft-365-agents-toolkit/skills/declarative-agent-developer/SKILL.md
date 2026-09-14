@@ -23,21 +23,22 @@ this skill's references for manifest schemas, capability rules, plugins, authent
 localization, and instruction design.
 
 Immediately before the first lifecycle command in a task, run `wiqd --version`. If it is
-unavailable, stop and tell the user to install it with:
-
-```powershell
-iex "& { $(irm 'https://aka.ms/wiqd/install.ps1') }"
-```
+unavailable, stop and tell the user that wiqd is required. Direct them to the
+[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance;
+do not duplicate platform-specific installer commands here.
 
 Do not fall back to direct `atk` commands.
 
 Reference-only requests that do not execute lifecycle commands can use this skill's schema,
 capability, plugin, authentication, localization, and instruction guidance without requiring
-wiqd to be installed.
+wiqd to be installed. If the request does not inspect or modify a project and does not run a
+project command, answer it directly from the relevant references and skip the workspace check
+below.
 
-## ⛔ Workspace Check — MANDATORY FIRST STEP
+## ⛔ Workspace Check — MANDATORY FIRST STEP FOR PROJECT OPERATIONS
 
-**Before doing ANYTHING, check the workspace files to fingerprint the project:**
+**Before inspecting, modifying, validating, packaging, provisioning, sharing, or publishing a
+project, check the workspace files to fingerprint it:**
 
 1. Check for `m365agents.yml` or `teamsApp.yml` at the project root.
 2. Check for `appPackage/declarativeAgent.json`.

@@ -6,7 +6,10 @@ Step-by-step instructions for scaffolding a new M365 Copilot agent project.
 
 ### wiqd CLI Setup
 
-Check if wiqd CLI is available by running `wiqd --version`. If the command is not found, **STOP and tell the user** that the wiqd CLI is required but not installed. Provide `iex "& { $(irm 'https://aka.ms/wiqd/install.ps1') }"` as the supported installation command, but do not run it without the user's approval.
+Check if wiqd CLI is available by running `wiqd --version`. If the command is not found, **STOP
+and tell the user** that the wiqd CLI is required but not installed. Direct them to the
+[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance
+instead of duplicating platform-specific installer commands here.
 
 ### The Only Valid Command
 

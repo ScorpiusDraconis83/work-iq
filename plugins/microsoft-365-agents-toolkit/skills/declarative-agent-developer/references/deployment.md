@@ -5,7 +5,11 @@
 The wiqd CLI is the execution layer for M365 declarative-agent project management. It orchestrates the complete lifecycle from creation to deployment.
 
 **Golden Rule:**
-Check if wiqd CLI is available (`wiqd --version`). If not found, **STOP and tell the user** that the wiqd CLI is required but not installed. Provide `iex "& { $(irm 'https://aka.ms/wiqd/install.ps1') }"` as the supported installation command, but do not run it without the user's approval.
+Check if wiqd CLI is available (`wiqd --version`). If not found, **STOP and tell the user** that
+the wiqd CLI is required but not installed. Direct them to the
+[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance
+instead of duplicating platform-specific installer commands here.
+
 Then use `wiqd` for all commands.
 
 🚨 **Never** use shortcuts, .vscode tasks, or abbreviated commands.
