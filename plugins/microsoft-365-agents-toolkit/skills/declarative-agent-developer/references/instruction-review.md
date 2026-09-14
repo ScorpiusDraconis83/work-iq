@@ -305,14 +305,19 @@ When reviewing instructions, follow this sequence:
 ### Phase 1: Inventory
 
 1. Read `declarativeAgent.json` — list all capabilities, actions, conversation starters, and the schema version
-2. Read `instructions.txt` (or inline instructions) — note the structure (or lack of it)
-3. **Measure instruction length** — count the characters in `instructions.txt`. If inline, count the `instructions` field value. Record the count against the **8,000-character limit**. If over → flag immediately as a blocking issue.
+2. Read the instruction file referenced by `declarativeAgent.json` (commonly `instruction.txt` or
+   `instructions.txt`), or the inline instructions — note the structure (or lack of it)
+3. **Measure instruction length** — count the characters in the referenced instruction file. If
+   inline, count the `instructions` field value. Record the count against the **8,000-character
+   limit**. If over → flag immediately as a blocking issue.
 4. If API plugins exist, read the `ai-plugin.json` to understand what functions are available and their parameter requirements
 5. If MCP plugins exist, read the plugin manifest to understand what tools are available
 6. Check the `version` field — note which GPT model era the instructions were likely written for
 7. **Version upgrade analysis** — Cross-reference the current schema version against the capabilities implied by the instructions (use the Version-Capability Matrix below). If the instructions describe functionality that requires a newer schema version, flag it. Example: instructions say "review meeting transcripts" but the agent is on v1.4 — `Meetings` capability (which includes transcripts) requires v1.5+.
 
-> **Quick length check:** `wc -m appPackage/instructions.txt` (Unix/macOS/WSL) or `(Get-Content appPackage/instructions.txt -Raw).Length` (PowerShell)
+> **Quick length check:** Substitute the filename referenced by `declarativeAgent.json`, for
+> example `wc -m appPackage/instruction.txt` (Unix/macOS/WSL) or
+> `(Get-Content appPackage/instruction.txt -Raw).Length` (PowerShell).
 
 ### Phase 2: Comprehension Check
 

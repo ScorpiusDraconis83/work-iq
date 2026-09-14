@@ -25,24 +25,27 @@ wiqd agent create --name my-agent
 cd my-agent
 ```
 
-**Project structure created:**
+**Typical core project structure (verify the generated output):**
 ```
 my-agent/
+├── .vscode/
 ├── appPackage/
 │   ├── manifest.json                   # Teams app manifest
 │   ├── declarativeAgent.json           # Declarative agent definition
-│   ├── instructions.txt                # Agent instructions
-│   └── adaptiveCards/
-│       └── card.json                   # Adaptive card template (from template)
-├── assets/                             # Asset files directory
+│   ├── instruction.txt                 # Agent instructions referenced by the scaffold
+│   ├── color.png
+│   └── outline.png
 ├── env/
-│   ├── .env.local                      # Local environment (template)
-│   └── .env.local.user                 # Local environment (secrets, generated)
-├── package.json                        # Node.js dependencies
+│   ├── .env.local
+│   └── .env.dev
+├── evals/
 ├── m365agents.yml                      # M365 agents config
 ├── m365agents.local.yml                # M365 agents local config
-└── README.md   
+└── README.md
 ```
+
+Treat `declarativeAgent.json` as the source of truth for the instruction filename rather than
+assuming a fixed name; existing projects may use a different valid filename.
 
 ### 2. Provisioning
 Provisioning generates M365 Title ID on first time and makes the updated agent available to the developer on Microsoft 365 Copilot.
@@ -73,20 +76,13 @@ wiqd agent provision --env custom
 
 After EVERY provisioning command (regardless of environment or whether it's first-time or re-provisioning), you MUST output a test link:
 
-**Local environment** — read `M365_TITLE_ID` from `env/.env.local` and construct the URL:
+For every environment, prefer the `deepLink` returned by wiqd. If it is unavailable, read
+`M365_TITLE_ID` from `env/.env.{environment}` and construct:
 ```
 ✅ Provision completed successfully!
 
 🚀 Test Your Agent:
-🔗 https://m365.cloud.microsoft/chat/?titleId={M365_TITLE_ID}
-```
-
-**Non-local environments (dev, staging, prod, etc.)** — use the `SHARE_LINK` value from `env/.env.{environment}`:
-```
-✅ Provision completed successfully!
-
-🚀 Test Your Agent:
-🔗 {SHARE_LINK}
+🔗 https://m365.cloud.microsoft/chat?titleId={M365_TITLE_ID}
 ```
 
 **This is REQUIRED for:**
@@ -143,8 +139,9 @@ wiqd agent share \
   --env dev
 ```
 
-### 6. Publishing (Optional)
-Publish to Microsoft 365 App Store or organizational catalog.
+### 6. Publish to the Organizational Admin Catalog (Optional)
+
+`wiqd agent publish` publishes to the tenant's organizational admin catalog:
 
 ```bash
 # Publish to catalog
@@ -152,9 +149,13 @@ wiqd agent publish --env prod
 ```
 
 **What publishing does:**
-- Submits agent to Microsoft 365 catalog
+- Submits the agent to the organizational admin catalog
 - Requires admin approval in tenant
-- Makes agent discoverable to users
+- Makes the agent discoverable to users in that organization
+
+For public Microsoft commercial marketplace or AppSource submission, follow the current Partner
+Center guidance in the [official wiqd documentation](https://aka.ms/wiqd/docs);
+`wiqd agent publish` is not the public marketplace submission flow.
 
 ## Environment Management
 
@@ -356,11 +357,13 @@ wiqd doctor
 ```
 
 **Checks:**
-- Node.js version
-- npm version
-- Azure CLI installation
-- Authentication status
-- Network connectivity
+- Core runtime and dependency health reported by the installed wiqd version
+- Extension registration and routing health
+- Other platform-specific checks surfaced in the command output
+
+Do not treat `wiqd doctor` success as proof that Azure CLI, network connectivity, or Microsoft 365
+authentication is ready. Check those prerequisites separately when the requested operation needs
+them; use `wiqd auth status` for wiqd authentication.
 
 ### Common Issues
 

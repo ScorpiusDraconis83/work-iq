@@ -18,7 +18,7 @@ npm install
 wiqd agent provision --env local
 ```
 
-**Result:** Returns a test URL like `https://m365.cloud.microsoft/chat/?titleId=T_abc123xyz` to test the agent in Microsoft 365 Copilot.
+**Result:** Returns a test URL like `https://m365.cloud.microsoft/chat?titleId=T_abc123xyz` to test the agent in Microsoft 365 Copilot.
 
 **Use case:** Testing agent functionality in a live environment during development.
 

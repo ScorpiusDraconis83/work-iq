@@ -16,7 +16,7 @@ MCP servers expose tools that can be consumed by your agent. Unlike OpenAPI-base
 
 ## Prerequisites
 
-- MCP server URL (must be accessible via HTTP/HTTPS)
+- MCP server URL (must use HTTPS and must not contain embedded credentials)
 - Node.js installed (for `mcp-remote` authentication helper)
 - Logo images for the agent (color.png 192×192 and outline.png 32×32) — optional, see [Step 5: Logo Images](#step-5-logo-images-optional)
 
@@ -517,7 +517,7 @@ duplicate action:
 □ Step 5: Ask user about custom logo (optional — skip if user declines)
 □ Step 6: Review or customize the generated RemoteMCPServer runtime
 □ Step 7: Verify the generated action registration in declarativeAgent.json
-□ Step 8: Run wiqd agent provision --env local
+□ Step 8: Run `wiqd agent validate`; provision only for an explicit deploy, provision, test, share, or publish request
 ```
 
 ---

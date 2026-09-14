@@ -88,7 +88,9 @@ rmdir <project-name>
 ```
 
 4. **Verify success:**
-- Check that key files exist in the current directory (`package.json`, `m365agents.yml`)
+- Check that `m365agents.yml`, `appPackage/manifest.json`, and
+  `appPackage/declarativeAgent.json` exist in the current directory
+- Read the `instructions` property in `declarativeAgent.json` and verify that its referenced file exists
 - Confirm the wiqd-created subfolder was removed
 - If the command fails, report the error and stop — do NOT retry automatically
 

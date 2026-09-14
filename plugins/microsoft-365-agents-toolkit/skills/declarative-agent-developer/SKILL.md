@@ -102,27 +102,29 @@ When you encounter ANY problem (missing files, malformed JSON, validation errors
 
 ## Critical Rules
 
-### 1. Deploy After EVERY Edit
+### 1. Validate After Edits; Provision Only on Request
 
-After ANY change to files in `appPackage/`, you MUST deploy and show the test link before responding:
+After any change to files in `appPackage/`, validate the project before responding:
 
 ```bash
-wiqd agent provision --env local
+wiqd agent validate
 ```
 
-Then read `M365_TITLE_ID` from `env/.env.local` and **ALWAYS** present the review UX:
+Provision only when the user explicitly asks to deploy, provision, test, share, or publish. After
+a successful provision, use the deep link returned by wiqd. If it is unavailable, read
+`M365_TITLE_ID` from the selected environment file and construct:
 
 ```
 ✅ Agent deployed successfully!
 
 🚀 Test Your Agent in M365 Copilot:
-🔗 https://m365.cloud.microsoft/chat/?titleId={M365_TITLE_ID}
+🔗 https://m365.cloud.microsoft/chat?titleId={M365_TITLE_ID}
 ```
 
-**⛔ Never respond without this link.** If you deployed, the test link MUST appear in your response. This is not optional — it is how the user tests their agent.
+If you provisioned, include the test link in your response.
 
 - If the manifest has errors → **STOP. Fix errors. Do NOT deploy.**
-- Exception: user explicitly asks you not to deploy
+- Do not provision merely because files changed.
 
 ### 2. Never Invent Content or Create Missing Files
 

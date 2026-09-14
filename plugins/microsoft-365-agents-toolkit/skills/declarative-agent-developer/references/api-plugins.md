@@ -14,13 +14,15 @@ API plugins (also called "actions") allow your M365 Copilot agent to interact wi
 
 ## ⛔ Post-`wiqd agent add action` Checklist — MANDATORY
 
-After running `wiqd agent add action`, you **MUST** complete ALL of these before validating and deploying:
+After running `wiqd agent add action`, you **MUST** complete ALL of these before validation and any
+user-requested deployment:
 
 1. **Update `name_for_human`** in ai-plugin.json — descriptive, user-facing name (max 20 chars)
 2. **Update `description_for_model`** in ai-plugin.json — detailed guidance for the AI on when and how to use each function
 3. **Customize adaptive cards** in `appPackage/adaptiveCards/` for each operation — different layouts per HTTP verb (list view for GET collections, detail view for GET by ID, confirmation for DELETE, etc.)
 4. **Add `confirmation` dialogs** for all destructive operations (POST, PUT, PATCH, DELETE)
-5. **Deploy** with `wiqd agent provision --env local`
+5. **Validate** with `wiqd agent validate`; provision only when the user explicitly requests
+   deployment, provisioning, testing, sharing, or publishing
 
 Skipping ANY of these steps = incomplete work. The `wiqd agent add action` command generates scaffolding — **you must finish the job** by customizing every generated file.
 
@@ -52,11 +54,12 @@ wiqd agent add action \
 ### Local File Paths
 
 `--openapi-spec` accepts relative and absolute local file paths. Relative paths are resolved from
-the current working directory, so prefer a project-relative path when the specification belongs
-to the project:
+the project directory selected by `--folder`; when `--folder` is omitted, it defaults to the
+current working directory. Prefer a project-relative path when the specification belongs to the
+project:
 
 ```bash
---openapi-spec ./api/openapi.yaml
+--openapi-spec ./api/openapi.yaml --folder ./my-agent
 ```
 
 Use an absolute path when the specification is outside the project or when the working directory
@@ -1148,7 +1151,7 @@ Test with various prompts:
 | Timeout errors | API response too slow | Optimize API, add caching, increase timeout |
 | Schema mismatch | Plugin expects different response format | Update OpenAPI spec to match actual API response |
 | "No operations selected" | Empty `--operations` parameter | Specify operations in correct format: `METHOD /path` |
-| "File not found" during `wiqd agent add action` | Relative path used for local OpenAPI spec | **Use absolute path**: `/full/path/to/openapi.json` |
+| "File not found" during `wiqd agent add action` | Path is not valid relative to `--folder` | Correct `--folder` or the relative path, or use an absolute path |
 | "File not found in zip archive" during provision | Manual plugin creation with incorrect spec path | **Use `wiqd agent add action` command** - do not manually create plugins |
 | OpenAPI spec path resolution fails | Path conflicts between zipAppPackage and M365 service | The wiqd CLI handles this correctly - always use `wiqd agent add action` |
 

@@ -18,18 +18,17 @@ When developing an agent, you MUST ALWAYS update the app name and description in
 
 ---
 
-## 🚨 CRITICAL DEPLOYMENT RULE 🚨
+## 🚨 CRITICAL VALIDATION AND DEPLOYMENT RULE 🚨
 
-When making ANY edits to an agent — including instructions, conversation starters, capabilities, plugins, or any file in `appPackage/` — you MUST ALWAYS deploy using `wiqd agent provision --env local` before returning to the user. This applies to EVERY turn, not just the final turn. Never return to the user with undeployed changes.
+After editing an agent, validate it with `wiqd agent validate` before returning to the user.
+Provision only when the user explicitly asks to deploy, provision, test, share, or publish.
 
 **You must NEVER:**
-- Skip deploy because "it's just instructions" — deploy after every change
-- Tell the user to "run `wiqd agent provision` yourself" — YOU must run it
+- Skip validation after changing manifests, instructions, capabilities, or plugins
+- Provision merely because files changed
 - Deploy when validation found errors — not even "to test" or "to demonstrate"
 - Deploy "to show the user what happens" when there are errors — just report the errors
 - Run `wiqd agent provision` "for educational purposes" to demonstrate failure — errors = STOP, not a teaching moment
-
-**Only exception:** The user explicitly asks you NOT to deploy. Only the user can opt out, never you.
 
 ---
 
@@ -45,7 +44,8 @@ Every agent needs meaningful conversation starters that help users understand wh
 
 **This is NOT optional.** Adding a capability without updating instructions is incomplete work.
 
-When you add, remove, or modify ANY capability or plugin, you MUST complete ALL of these steps before deploying:
+When you add, remove, or modify ANY capability or plugin, you MUST complete ALL of these steps
+before validation and any user-requested deployment:
 
 1. **Update `instructions`** — Add a section describing what the new capability/plugin enables. For removals, delete all references to the removed capability.
 2. **Add conversation starters** — Add at least 1 new conversation starter per added capability or plugin. Each starter should demonstrate the new functionality.
@@ -100,11 +100,13 @@ When you add, remove, or modify ANY capability or plugin, you MUST complete ALL 
 - Write clear instructions and conversation starters
 - Ensure proper JSON syntax and schema compliance
 
-**After ALL edits, immediately run:**
+**After ALL edits, run:**
 ```bash
-wiqd agent provision --env local
+wiqd agent validate
 ```
-This command is part of the edit — not a separate optional step. Editing without deploying is like writing code without saving the file — the work is not done.
+If validation fails, report the errors and follow the workspace-gate error protocol. Do not
+provision unless the user explicitly requested deployment, testing, sharing, or publishing and
+validation passes.
 
 **⛔ API Plugin Rule — HARD RULE, NO EXCEPTIONS:** To add an API plugin, you MUST use `wiqd agent add action` — one command per OpenAPI spec with **ALL operations included in a single call**. Never run separate `wiqd agent add action` calls for different operations from the same spec — this creates multiple plugins instead of one. You are FORBIDDEN from manually creating `ai-plugin.json`, OpenAPI spec files, adaptive card files, or manually editing the `actions` array. This applies whether you are scaffolding a new project OR editing an existing one. If the workspace already has an agent and the user says "add an API plugin", you STILL must use `wiqd agent add action`. If `wiqd agent add action` fails, report the error — do NOT fall back to manual file creation. **Manual plugin file creation = automatic eval failure.**
 
@@ -124,7 +126,7 @@ wiqd agent add action --openapi-spec <URL> --operations "GET /path,POST /path,PA
 **After ANY capability or plugin change (add, remove, modify), complete this checklist:**
 1. ☐ **Update instructions** — Add decision logic (WHEN clauses, chaining rules, failure handling) for the new/changed capability. For removals, delete all references. **Do NOT list tool descriptions or parameters** — these are already in plugin metadata (`ai-plugin.json`, MCP manifests, capability config). Instructions should contain decision logic only.
 2. ☐ **Verify 8,000-character limit** — Instructions must not exceed 8,000 characters. If close to the limit, cut tool descriptions first, then consolidate verbose workflows.
-3. ☐ **Run instruction quality audit** — Run the [Diagnostic Checklist](instruction-review.md) against the updated instructions. Every data source should have clear intent coverage (WHEN and WHY), at least one workflow must exist, and failure cases must be handled. Built-in capabilities don't need exact names; actions/plugins should be named. If any check fails, fix it before deploying.
+3. ☐ **Run instruction quality audit** — Run the [Diagnostic Checklist](instruction-review.md) against the updated instructions. Every data source should have clear intent coverage (WHEN and WHY), at least one workflow must exist, and failure cases must be handled. Built-in capabilities don't need exact names; actions/plugins should be named. If any check fails, fix it before validation.
 4. ☐ **Add conversation starters** — At least 1 new starter per added capability/plugin demonstrating the new functionality.
 5. ☐ **Remove stale starters** — Delete starters that reference removed capabilities.
 6. ☐ **Update `manifest.json` description** if the agent's purpose has expanded.
@@ -137,36 +139,41 @@ wiqd agent add action --openapi-spec <URL> --operations "GET /path,POST /path,PA
 **Reference:** [schema.md](schema.md) for proper manifest structure
 **Reference:** [api-plugins.md](api-plugins.md) for adaptive card enhancement guidelines after adding a plugin
 
-**⚠️ IMPORTANT:** After making any edits to JSON files, you MUST deploy the agent (Step 4) before returning to the user.
+**⚠️ IMPORTANT:** After making any edits to JSON files, you MUST validate the agent before
+returning to the user.
 
 **⛔ MANDATORY POST-EDIT CHECKPOINT — YOU ARE NOT DONE YET:**
-After editing ANY file in `appPackage/`, you MUST deploy before responding to the user. Skipping this is an eval failure:
-- **Deploy** — Run `wiqd agent provision --env local`. If you edited files but did not run this command, your work is incomplete. The only exception is if the user explicitly asked you not to deploy.
+After editing any file in `appPackage/`, run `wiqd agent validate`. If validation fails, report the
+errors and do not provision.
 
-If you are about to respond to the user and you have NOT deployed, **STOP and deploy now**.
+If you are about to respond and have not validated the changes, **STOP and validate now**.
 
-### Step 4: Provision and Deploy
+### Step 4: Validate, Then Optionally Provision
 
-**⛔ PRE-DEPLOY CHECK:** Before running the command below, verify the JSON files are syntactically correct and have the required fields. If there are known errors → fix them first before deploying.
+**Action:** Validate the project:
 
-**Action:** Provision required Azure resources and register the agent:
 ```bash
-wiqd agent provision --env local
+wiqd agent validate
 ```
 
-**Result:** Returns a test URL like `https://m365.cloud.microsoft/chat/?titleId=T_abc123xyz`
+If the user explicitly asked to deploy, provision, test, share, or publish, determine the target
+environment once (default to `local` when the user did not specify one), then provision only that
+environment after validation passes:
 
-**Note:** JSON-based agents do not require a compilation step - changes are deployed directly.
+```bash
+wiqd agent provision --env <environment>
+```
 
-**✅ After successful provision, ALWAYS present the review UX with the test link:**
+**Result:** Provisioning returns a test URL like `https://m365.cloud.microsoft/chat?titleId=T_abc123xyz`.
 
-Read `M365_TITLE_ID` from `env/.env.local` and output:
+After successful provision, present the review UX with the returned deep link. If the command does
+not return one, read `M365_TITLE_ID` from `env/.env.<environment>` and construct:
 
 ```
 ✅ Agent deployed successfully!
 
 🚀 Test Your Agent in M365 Copilot:
-🔗 https://m365.cloud.microsoft/chat/?titleId={M365_TITLE_ID}
+🔗 https://m365.cloud.microsoft/chat?titleId={M365_TITLE_ID}
 ```
 
 **⛔ Never respond without this link.** If you deployed, the test link MUST appear in your response. This is not optional.
@@ -182,20 +189,25 @@ Then wait for the user's response.
 - Test error handling and edge cases
 - Validate security controls
 
-### Step 6: Deploy to Environments
+### Step 6: Deploy to Additional Environments When Requested
 
-**Action:** Deploy to staging/production environments:
+Step 4 already provisions the requested environment. Provision another environment only when the
+user explicitly requests an additional deployment. For example:
 ```bash
-wiqd agent provision --env prod
+wiqd agent provision --env dev
 ```
 
 **Reference:** [deployment.md](deployment.md) for environment management and CI/CD patterns
 
 ### Step 7: Package and Share
 
-**Action:** Package and share the agent:
+Packaging alone does not require provisioning. Sharing does: before sharing, provision the target
+environment if Step 4 did not already provision it. Use the same environment consistently:
 ```bash
-# Package the agent
+# Required before sharing; omit for a package-only request
+wiqd agent provision --env dev
+
+# Package the agent when requested
 wiqd agent package --env dev
 
 # Share to tenant (for shared agents)
@@ -206,18 +218,19 @@ wiqd agent share --scope tenant --env dev
 
 ## Critical Workflow Rules
 
-### Always Deploy After Edits
+### Always Validate After Edits
 
-**RULE:** When making any changes to an agent (JSON manifest files, instructions, capabilities, API plugins), you MUST complete the following workflow before returning to the user:
+**RULE:** When making any changes to an agent, complete this workflow before returning:
 
-1. Provision/deploy the agent: `wiqd agent provision --env local`
-2. Read `M365_TITLE_ID` from `env/.env.local`
-3. Present the review UX with the test link:
+1. Validate the agent: `wiqd agent validate`
+2. Report validation errors and follow the workspace-gate error protocol.
+3. Only if the user requested deployment, testing, sharing, or publishing, provision the requested
+   environment and present the returned deep link:
    ```
    ✅ Agent deployed successfully!
 
    🚀 Test Your Agent in M365 Copilot:
-   🔗 https://m365.cloud.microsoft/chat/?titleId={M365_TITLE_ID}
+   🔗 https://m365.cloud.microsoft/chat?titleId={M365_TITLE_ID}
    ```
 
 **⛔ Never respond without this link after deploying.**
@@ -240,10 +253,10 @@ wiqd agent share --scope tenant --env dev
 
 **STOP.** Before writing your response to the user, verify ALL of the following:
 
-- [ ] I ran `wiqd agent provision --env local` and it succeeded
-- [ ] I read `M365_TITLE_ID` from `env/.env.local`
-- [ ] I presented the review UX with the `🚀 Test Your Agent in M365 Copilot:` link
+- [ ] I ran `wiqd agent validate` and it succeeded
+- [ ] If the user requested deployment, testing, sharing, or publishing, I provisioned the requested environment
+- [ ] If I provisioned, I presented the returned deep link (or constructed it from `M365_TITLE_ID`)
 
 **If you cannot check ALL boxes, you are NOT done.** Go back and complete the missing steps.
 
-This checklist applies to **EVERY turn** — not just the last turn in a multi-turn conversation. Even if you "only edited instructions," you must deploy before responding.
+Validation applies after every edit. Provisioning remains an explicit user-requested operation.
