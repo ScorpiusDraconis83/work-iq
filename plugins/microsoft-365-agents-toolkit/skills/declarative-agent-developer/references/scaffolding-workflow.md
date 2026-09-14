@@ -8,7 +8,7 @@ Step-by-step instructions for scaffolding a new M365 Copilot agent project.
 
 Check if wiqd CLI is available by running `wiqd --version`. If the command is not found, **STOP
 and tell the user** that the wiqd CLI is required but not installed. Direct them to the
-[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance
+[official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/) for the current installation guidance
 instead of duplicating platform-specific installer commands here.
 
 ### The Only Valid Command
@@ -187,7 +187,7 @@ This workflow **only** handles project creation and agent context setup. After s
 
 | Error | Action |
 |-------|--------|
-| wiqd CLI not installed | Stop. Direct the user to the [official wiqd documentation](https://aka.ms/wiqd/docs) for current installation guidance. |
+| wiqd CLI not installed | Stop. Direct the user to the [official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/) for current installation guidance. |
 | Directory not empty | Stop. Show error message. Do not proceed. |
 | Invalid project name | Warn and suggest a corrected name. |
 | `wiqd agent create` command fails | Report the error with full output. Do not retry. |

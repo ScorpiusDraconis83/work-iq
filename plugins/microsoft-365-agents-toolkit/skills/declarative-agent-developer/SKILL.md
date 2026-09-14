@@ -24,7 +24,7 @@ localization, and instruction design.
 
 Immediately before the first lifecycle command in a task, run `wiqd --version`. If it is
 unavailable, stop and tell the user that wiqd is required. Direct them to the
-[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance;
+[official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/) for the current installation guidance;
 do not duplicate platform-specific installer commands here.
 
 Do not fall back to direct `atk` commands.

@@ -7,7 +7,7 @@ The wiqd CLI is the execution layer for M365 declarative-agent project managemen
 **Golden Rule:**
 Check if wiqd CLI is available (`wiqd --version`). If not found, **STOP and tell the user** that
 the wiqd CLI is required but not installed. Direct them to the
-[official wiqd documentation](https://aka.ms/wiqd/docs) for the current installation guidance
+[official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/) for the current installation guidance
 instead of duplicating platform-specific installer commands here.
 
 Then use `wiqd` for all commands.
@@ -368,7 +368,7 @@ them; use `wiqd auth status` for wiqd authentication.
 ### Common Issues
 
 **"Command not found":**
-- Follow the current installation guidance in the [official wiqd documentation](https://aka.ms/wiqd/docs)
+- Follow the current installation guidance in the [official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/)
 - Restart the terminal, then verify with `wiqd --version`
 
 **"Authentication required":**

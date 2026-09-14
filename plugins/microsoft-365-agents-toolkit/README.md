@@ -10,6 +10,16 @@ Toolkit for building Microsoft 365 Copilot declarative agents.
 /plugin install microsoft-365-agents-toolkit@work-iq
 ```
 
+## Prerequisites
+
+Declarative Agent project lifecycle operations through the
+`declarative-agent-developer` skill require the wiqd CLI. Follow the
+[official wiqd installation guide](https://microsoft.github.io/wiqd/getting-started/installation/)
+for the current installation instructions.
+
+This requirement applies only to Declarative Agent workflows. Other ATK workflows continue to
+use the ATK CLI and do not require wiqd.
+
 ## Usage
 
 ```
