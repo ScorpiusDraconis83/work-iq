@@ -38,7 +38,7 @@ export function validateTrace(scenario, trace, { observed = false } = {}) {
   if (observed) {
     if (trace.evidenceKind !== 'observed-host-mock') fail('provenance', 'Only observed host/mock traces qualify; fixtures are oracle units.');
     const p = trace.provenance;
-    const required = ['host', 'hostVersion', 'model', 'package', 'packageRevision', 'catalogHash',
+    const required = ['host', 'hostVersion', 'model', 'package', 'packageRevision', 'packageHash', 'catalogHash',
       'scenarioHash', 'adapterVersion', 'startedAt', 'rawTraceSha256'];
     if (!p || required.some(k => typeof p[k] !== 'string' || !p[k].trim())) {
       fail('provenance', 'Missing host, catalog, scenario, package or raw-evidence provenance.');
@@ -279,7 +279,7 @@ export function validateTrace(scenario, trace, { observed = false } = {}) {
       fail('false-completion', 'A persisted unsent reply draft is not a sent message or unrelated new draft.');
     }
     for (const key of ['currentState']) {
-      if (value[key] && !equal(final.claims[key], value[key])) fail('result-claim', `Claim ${key} conflicts with authoritative returned entities.`);
+      if (Object.hasOwn(value, key) && !equal(final.claims[key], value[key])) fail('result-claim', `Claim ${key} conflicts with authoritative returned entities.`);
     }
   }
   const records = values.flatMap(value => value.records ?? []);

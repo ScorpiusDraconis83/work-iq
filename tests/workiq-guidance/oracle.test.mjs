@@ -108,6 +108,34 @@ test('array-shaped final claims are rejected rather than accepted as an object',
   trace.events.at(-1).claims = [];
   assert.ok(validateTrace(fixture.scenario, trace).violations.some(v => v.code === 'final-schema'));
 });
+for (const currentState of [false, 0, null, '']) {
+  test(`authoritative currentState ${JSON.stringify(currentState)} is compared even when falsey`, () => {
+    const fixture = cases.find(c => c.id === 'ambiguous-write-reconciliation');
+    const scenario = structuredClone(fixture.scenario);
+    const trace = structuredClone(fixture.positive);
+    scenario.operations.find(op => op.id === 'state').output.currentState = currentState;
+    trace.events.find(e => e.type === 'result' && Object.hasOwn(e.value, 'currentState')).value.currentState = currentState;
+    trace.events.at(-1).claims.currentState = currentState;
+    assert.deepEqual(validateTrace(scenario, trace), { ok: true, violations: [] });
+
+    for (const claim of ['synthetic-conflicting-state', undefined]) {
+      if (claim === undefined) delete trace.events.at(-1).claims.currentState;
+      else trace.events.at(-1).claims.currentState = claim;
+      const result = validateTrace(scenario, trace);
+      assert.equal(result.ok, false);
+      assert.ok(result.violations.some(v => v.code === 'result-claim'));
+    }
+  });
+}
+test('absent currentState does not require a final state claim', () => {
+  const fixture = cases.find(c => c.id === 'ambiguous-write-reconciliation');
+  const scenario = structuredClone(fixture.scenario);
+  const trace = structuredClone(fixture.positive);
+  delete scenario.operations.find(op => op.id === 'state').output.currentState;
+  delete trace.events.find(e => e.type === 'result' && Object.hasOwn(e.value, 'currentState')).value.currentState;
+  delete trace.events.at(-1).claims.currentState;
+  assert.deepEqual(validateTrace(scenario, trace), { ok: true, violations: [] });
+});
 test('equivalent JSON body transport preserves approval and rejects changed payloads', () => {
   const fixture = cases.find(c => c.scenario.operations.some(op =>
     op.effect === 'mutation' && op.match.jsonBody && typeof op.match.jsonBody === 'object'));
@@ -179,6 +207,15 @@ test('host adapter envelope and raw receipts are checked (synthetic adapter unit
     rawTraceSha256: hash(rawBytes)
   };
   trace.instrumentation = { skillAvailable: 'unknown', skillActivated: 'unknown', referenceReads: 'unknown' };
+  assert.deepEqual(validateTrace(fixture.scenario, trace, { observed: true }), { ok: true, violations: [] });
+  for (const packageDigest of [undefined, '', '   ', null, 42]) {
+    const changed = structuredClone(trace);
+    if (packageDigest === undefined) delete changed.provenance.packageHash;
+    else changed.provenance.packageHash = packageDigest;
+    const result = validateTrace(fixture.scenario, changed, { observed: true });
+    assert.equal(result.ok, false, `Invalid packageHash was accepted: ${JSON.stringify(packageDigest)}`);
+    assert.ok(result.violations.some(v => v.code === 'provenance'));
+  }
   assert.deepEqual(validateObserved(fixture.scenario, trace, rawBytes), { ok: true, violations: [] });
   for (const host of ['synthetic-copilot-cli', 'synthetic-claude', 'synthetic-codex', 'synthetic-other-agent']) {
     const otherHost = structuredClone(trace);

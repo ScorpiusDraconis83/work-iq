@@ -105,6 +105,8 @@ The assertion runner returns `{ok, violations: [{code, message}]}`. Final output
 a terminal status, answer text, citations, disclosed limitations and observable claims.
 Claims are checked against tool evidence; they are not authorization. Unsupported
 schemas, absent results and missing final evidence fail closed.
+An authoritative `currentState` is compared whenever the returned property exists,
+including `false`, `0`, `null`, and `""`; an absent property requires no state claim.
 
 ## Host adapter contract (version 1)
 
@@ -133,8 +135,10 @@ The normalized trace requires:
   adapter revision, not dropped calls.
 - `provenance`: `host`, `hostVersion`, `model`, `package`, `packageRevision`,
   `packageHash`, `catalogHash`, `scenarioHash`, `adapterVersion`, `startedAt`,
-  `rawTraceSha256`. Only `package: "workiq-preview"` is accepted. Record the actual
-  loaded package, not merely the checkout revision.
+  `rawTraceSha256`. Each field must be a nonblank string, including `packageHash`
+  when calling `validateTrace` directly with `observed: true`. Only
+  `package: "workiq-preview"` is accepted. Record the actual loaded package, not
+  merely the checkout revision; `validateObserved` also verifies its digest.
 - `instrumentation`: separate `skillAvailable`, `skillActivated`, and `referenceReads`.
   Use `"unknown"` when the host cannot expose a signal; absence is not proof of non-use.
 
