@@ -37,7 +37,8 @@ The most common Teams routing mistake is mixing these up:
 | List channel messages | `fetch` | `/teams/{teamId}/channels/{channelId}/messages` |
 | Post a channel message | `create_entity` | parentUrl `/teams/{teamId}/channels/{channelId}/messages` |
 | Reply to a channel message | `create_entity` | parentUrl `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies` |
-| Edit a message | `update_entity` | `/chats/{conversationId}/messages/{messageId}` |
+| Edit a chat message | `update_entity` | `/chats/{chatId}/messages/{messageId}` |
+| Edit a channel message | `update_entity` | `/teams/{teamId}/channels/{channelId}/messages/{messageId}` |
 | React to a message | `do_action` | `/chats/{chatId}/messages/{messageId}/setReaction` (or the channel-message equivalent) |
 | Remove a chat from my list | `do_action` | `/chats/{chatId}/hideForUser` |
 | Mark a chat read or unread | `do_action` | `/chats/{chatId}/markChatReadForUser`, `/chats/{chatId}/markChatUnreadForUser` |
@@ -45,9 +46,6 @@ The most common Teams routing mistake is mixing these up:
 | Channel-message delta ("what's new since…") | `call_function` | `/teams/{teamId}/channels/{channelId}/messages/delta` |
 | Read presence | `fetch` | `/me/presence`, `/users/{id}/presence` |
 | Set my presence | `do_action` | `/me/presence/setUserPreferredPresence` |
-
-For Teams API path inventories, follow the dedicated **Teams API path
-inventories** section in `references/search-paths-work-iq.md`.
 
 ## Finding Teams targets
 
@@ -63,7 +61,8 @@ reads and mutations:
 
 ### Finding a channel
 
-1. Fetch `/me/joinedTeams?$select=id,displayName` and select the exact team name.
+1. Fetch exactly `/me/joinedTeams?$select=id,displayName` and select the exact
+   team name. Do not add `$top`; the deployed endpoint rejects it.
 2. Fetch `/teams/{teamId}/channels?$select=id,displayName` and select the exact
    channel name. Do not choose the first similar channel name.
 
@@ -76,11 +75,18 @@ a pair of users. If it already exists, this call returns that existing chat
 instead of creating a duplicate. Require a non-empty returned chat ID and
 `chatType == "oneOnOne"`. Do not enumerate `/me/chats` for a named person.
 
-1. In one `fetch` call, request `/me?$select=id` and
-   `/me/people?$search=%22{urlEncodedExactDisplayName}%22&$select=id,displayName&$top=10`.
-   Get the signed-in user's ID and require exactly one exact `displayName`
-   match for the counterpart. Do not choose a partial or ambiguous name match.
-2. Call `create_entity` with `parentUrl="/chats"` and exactly these two members:
+1. Resolve the signed-in user and a verified directory-user counterpart:
+   - When the user supplied an email address or UPN, fetch `/me?$select=id` and
+     `/users/{urlEncodedUserPrincipalName}?$select=id,displayName,mail,userPrincipalName`.
+   - Otherwise, fetch `/me?$select=id` and
+     `/users?$filter=displayName%20eq%20%27{odataEscapedAndUrlEncodedExactDisplayName}%27&$select=id,displayName,mail,userPrincipalName&$top=10`.
+2. Require exactly one returned directory user whose `displayName` exactly
+   matches the requested person. If no user or multiple users match, ask for
+   an email address or UPN instead of guessing. Do not use `/me/people`;
+   People results can be fuzzy or represent contacts rather than directory
+   users.
+3. Call `create_entity` with `parentUrl="/chats"` and exactly these two members,
+   using only the returned directory-user `id` for `{counterpartUserId}`:
 
 ```json
 {
@@ -100,15 +106,20 @@ instead of creating a duplicate. Require a non-empty returned chat ID and
 }
 ```
 
-**By topic (group chat).** In one `fetch` call, request `/me?$select=id` and
-`/me/chats?$expand=members&$top=50`, and require an exact `topic` match.
+**By topic (group chat).** In the initial `fetch` call, request
+`/me?$select=id` and
+`/me/chats?$filter=topic%20eq%20%27{odataEscapedAndUrlEncodedExactTopic}%27&$expand=members&$top=50`,
+and require an exact `topic` match. If the response includes
+`@odata.nextLink`, follow the global pagination and partial-result guidance in
+`references/fetch-work-iq.md`.
 
 **Your member identity in the chat.** `hideForUser`, `markChatReadForUser`,
 and `markChatUnreadForUser` need the signed-in member whose `userId` equals
 `{signedInUserId}`. If the chat lookup already returned members (as the topic
-lookup does), use them and do not fetch members again. Otherwise, fetch exactly
-`/chats/{chatId}/members`. The URL must end at `/members`; do not append any
-query string, including `$select`, `$expand`, or `$top`. `userId` and
+lookup does), use them. Do not fetch `/chats/{chatId}/members` again.
+Otherwise, fetch exactly `/chats/{chatId}/members`. The URL must end at
+`/members`; do not append any query string, including `$select`, `$expand`, or
+`$top`. `userId` and
 `tenantId` are returned by the unfiltered response but are not selectable
 `conversationMember` properties. Put that member's `userId` in
 `teamworkUserIdentity.id` and use the same member's returned `tenantId`. Never
@@ -166,13 +177,19 @@ Message body shape (chat and channel):
 
 ## Edit a message
 
-Find the target with **Finding a channel** or **Finding a chat**, then use
-**Finding a message** to resolve the exact message ID. Call `update_entity`
-only on `/chats/{conversationId}/messages/{messageId}`. Use
-`{"body":{"contentType":"text","content":"..."}}` as the update body.
+### Edit a chat message
 
-Do not call `search_paths` or `get_schema`, and do not attempt an edit on a
-`/teams/...` message path.
+Use **Finding a chat**, then **Finding a message**, and call `update_entity`
+on `/chats/{chatId}/messages/{messageId}`.
+
+### Edit a channel message
+
+Use **Finding a channel**, then **Finding a message**, and call `update_entity`
+on `/teams/{teamId}/channels/{channelId}/messages/{messageId}`.
+
+For both surfaces, use
+`{"body":{"contentType":"text","content":"..."}}` as the update body. Do not
+call `search_paths` or `get_schema` for these known edit paths.
 
 ## Removing/Deleting/Hiding a chat from the current user's chat list
 

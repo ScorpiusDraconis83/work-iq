@@ -270,10 +270,12 @@ thumbs-up reaction, use `👍`; not `like`.
 ### Remove a Teams chat from the current user's list
 
 Use `hideForUser` for requests to delete, remove, or hide a chat from the
-current user's chat list. For a named group-chat topic, use the following
-lookup. In one `fetch` call, request `/me?$select=id` and
-`/me/chats?$expand=members&$top=50`, require an exact topic match, and use the
-expanded signed-in member for the action identity. Do not fetch
+current user's chat list. For a named group-chat topic, use the exact-topic
+lookup in `references/teams-work-iq.md`:
+`/me/chats?$filter=topic%20eq%20%27{odataEscapedAndUrlEncodedExactTopic}%27&$expand=members&$top=50`.
+Require an exact topic match, follow the global pagination guidance if a
+continuation is returned, and use the expanded signed-in member for the action
+identity. Do not fetch
 `/chats/{chatId}/members` again. For a named person, use the 1:1 resolver in
 `references/teams-work-iq.md`; do not use `delete_entity`.
 
