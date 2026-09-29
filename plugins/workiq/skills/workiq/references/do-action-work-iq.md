@@ -22,6 +22,8 @@ POST a WorkIQ action — a named operation that performs a task (send mail, copy
 - Forward or reply — `/me/messages/{id}/{forward|reply}`
 - Compute free/busy across multiple users — `/me/calendar/getSchedule`
 - React to a Teams message — `/chats/{chatId}/messages/{messageId}/setReaction`
+- Remove a Teams chat from the current user's list — `/chats/{chatId}/hideForUser`
+- Mark a Teams chat read or unread — `/chats/{chatId}/markChatReadForUser`, `/chats/{chatId}/markChatUnreadForUser`
 - Set the user's Teams presence — `/me/presence/setUserPreferredPresence`
 - Initiate a large file upload session — `/me/drive/.../createUploadSession`
 - Subscribe to change notifications
@@ -250,14 +252,67 @@ SharePoint route.
 Use `setUserPreferredPresence` for user requests ("set me to Busy"). The `setPresence` action is the application-session variant and requires a `sessionId` — don't fall back to it without one.
 
 ### React to a Teams chat message
+
+Resolve the exact chat or channel message as described in
+`references/teams-work-iq.md`, then call:
+
 ```json
 {
   "actionUrl": "/chats/{chatId}/messages/{messageId}/setReaction",
-  "jsonBody": "{\"reactionType\":\"like\"}"
+  "jsonBody": "{\"reactionType\":\"👍\"}"
 }
 ```
 
 For channel messages use the `/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction` path. See `references/teams-work-iq.md` for chat-vs-channel resolution.
+The deployed WorkIQ action expects the literal Unicode reaction value. For a
+thumbs-up reaction, use `👍`; not `like`.
+
+### Remove a Teams chat from the current user's list
+
+Use `hideForUser` for requests to delete, remove, or hide a chat from the
+current user's chat list. For a named group-chat topic, use the exact-topic
+lookup in `references/teams-work-iq.md`:
+`/me/chats?$filter=topic%20eq%20%27{odataEscapedAndUrlEncodedExactTopic}%27&$expand=members&$top=50`.
+Require an exact topic match, follow the global pagination guidance if a
+continuation is returned, and use the expanded signed-in member for the action
+identity. Do not fetch
+`/chats/{chatId}/members` again. For a named person, use the 1:1 resolver in
+`references/teams-work-iq.md`; do not use `delete_entity`.
+
+```json
+{
+  "actionUrl": "/chats/{chatId}/hideForUser",
+  "jsonBody": {
+    "user": {
+      "@odata.type": "#microsoft.graph.teamworkUserIdentity",
+      "id": "{signedInUserId}",
+      "tenantId": "{signedInMemberTenantId}",
+      "userIdentityType": "aadUser"
+    }
+  }
+}
+```
+
+
+### Mark a Teams chat read or unread
+
+Resolve the exact chat and current-user identity as described in
+`references/teams-work-iq.md`. Both actions use the same `user` object as
+`hideForUser`:
+
+When the chat response does not already include members, fetch exactly
+`/chats/{chatId}/members` with no query string. Do not request `userId` or
+`tenantId` through `$select`; read those properties from the unfiltered member
+response.
+
+| Intent | Action URL | Additional body field |
+|--------|------------|-----------------------|
+| Mark read | `/chats/{chatId}/markChatReadForUser` | None |
+| Mark unread | `/chats/{chatId}/markChatUnreadForUser` | `"lastMessageReadDateTime":"{returnedCreatedDateTime}"` |
+
+For mark-unread, add `lastMessageReadDateTime` beside `user` in `jsonBody`.
+Do not omit `tenantId` or substitute the chat resource's
+`lastUpdatedDateTime`. These are known deployed contracts; call them directly.
 
 ### Replace an existing file with an upload session
 Resolve the existing driveItem with one `call_function` exact-name search and
